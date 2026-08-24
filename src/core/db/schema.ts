@@ -107,6 +107,8 @@ export const authorizationLedger = pgTable("authorization_ledger", {
   index("ledger_auth_idx").on(t.authorizationId),
   index("ledger_reservation_idx").on(t.reservationId),
   index("ledger_expires_idx").on(t.expiresAt),
+  // A webhook can arrive twice. This is what makes double-debit impossible, not the code that checks.
+  uniqueIndex("ledger_reservation_type_unique").on(t.reservationId, t.entryType),
 ]);
 
 // Screens 1, 3. The full signed token is stored so the receipt can embed it verbatim and a third

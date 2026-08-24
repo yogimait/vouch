@@ -4,10 +4,11 @@
 > `git log --oneline` is the audit trail against this file.
 >
 > - [x] **Day 0** — gate harness, CLAUDE.md, FAILURES.md, deps, `"type":"module"`, Chromium verified
+> - [x] **Day 0 GATE PASSED** (2026-08-25) — `pay_TThvnSZb9n3zRv` captured headlessly. Link page -> embedded Checkout v2 -> contact gate -> **domestic** test card -> decline card-save -> OTP `123456`. UPI is off on this account (`preferences.upi:false`)
 > - [x] **Day 1** — env parse, schema (12 tables), migration `0000_init`, seed, money/ids/errors/http/canonical/guards, audit chain + log, ESLint boundaries (proved firing), vitest
 > - [x] **Day 2** — Ed25519 keygen, two-segment token codec, offer issue + verify, **tamper suite written before the verifier shipped** (17 cases)
 > - [x] **Day 3** — admission engine: 13 ordered rules, ADMIT/ESCALATE/REFUSE, escalatable-on-the-reason, fixtures, trip table, 1000-run determinism, three deny-by-default paths. Moved to `src/`.
-> - [ ] **Day 4** — orchestrator: idempotency, audit-before-money, RESERVE under advisory lock, state machine, webhook
+> - [x] **Day 4** — orchestrator: idempotency, audit-before-money, RESERVE under advisory lock, state machine, webhook. Ledger race + double-delivery proved against real Postgres
 > - [ ] **Day 5** — receipt build/sign/verify/export · demo 5
 > - [ ] **Day 6** — the four shared functions, MCP stdio server, HTTP routes, device watcher · demo 1
 > - [ ] **Day 7** — buyer agent (Groq) · demo 2

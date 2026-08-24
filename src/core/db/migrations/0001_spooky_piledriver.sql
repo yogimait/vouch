@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "ledger_reservation_type_unique" ON "authorization_ledger" USING btree ("reservation_id","entry_type");
