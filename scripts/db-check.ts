@@ -1,5 +1,6 @@
 // You will mix up the pooled and direct URLs once. This makes that cost 5 seconds, not 40 minutes.
 import { sql } from "drizzle-orm";
+import postgres from "postgres";
 import { getDb } from "@/core/db";
 
 interface Parsed { host: string; port: string; pooled: boolean }
@@ -37,6 +38,24 @@ if (!directUrl) {
 
 if (appUrl && directUrl && appUrl === directUrl) {
   problems.push("DATABASE_URL and DIRECT_URL are identical. They are two different strings.");
+}
+
+// The first version of this check never connected with DIRECT_URL, so it passed green while the
+// direct host did not resolve at all. A check that does not exercise the thing is not a check.
+if (directUrl) {
+  const probe = postgres(directUrl, { max: 1, prepare: false, connect_timeout: 12 });
+  try {
+    await probe`select 1`;
+    console.error("DIRECT_URL    reachable");
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    problems.push(`DIRECT_URL is unreachable: ${reason}`);
+    if (reason.includes("ENOTFOUND")) {
+      problems.push("That host does not resolve. Supabase no longer provisions db.<ref>.supabase.co on every project — use the SESSION POOLER string (pooler host, port 5432).");
+    }
+  } finally {
+    await probe.end({ timeout: 5 }).catch(() => {});
+  }
 }
 
 if (problems.length) {

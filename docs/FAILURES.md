@@ -93,3 +93,47 @@ instinct is to keep editing the config.
 Wrote a throwaway `core/engine/_boundary_probe.ts` importing both `@/core/db` and `node:crypto`, ran
 eslint, confirmed **two** errors fired, deleted it. An architectural rule nobody has seen fail is a
 rule you do not know you have.
+
+## 2026-08-24 · `drizzle-kit migrate` exited 0 without applying anything
+
+**Expected** `npm run db:migrate` to create 12 tables.
+
+**Happened** It printed `Using 'postgres' driver for database querying` and exited **0**. No tables
+were created. `db:seed` then failed with `relation "audit_log" does not exist`, which looked like a
+seed bug and was not.
+
+**Root cause, two layers.**
+
+1. `DIRECT_URL` pointed at `aws-0-ap-south-1.db.supabase.co`, which **does not resolve**
+   (`ENOTFOUND`). Supabase's Connect panel shows a pooled host of the form
+   `aws-0-<region>.pooler.supabase.com`, and it is easy to produce that direct-looking hostname by
+   editing it. The real direct host is `db.<project-ref>.supabase.co` — and on this project **that
+   does not resolve either**, so the true direct connection is simply unavailable here.
+2. **`drizzle-kit migrate` swallowed the DNS failure and reported success.** That is the expensive
+   part. A migration step that cannot fail loudly cannot be trusted, and "runs from a clean clone"
+   is definition-of-done #1.
+
+**Verified before changing anything** — probed both candidates directly:
+
+```
+session pooler  aws-0-ap-south-1.pooler.supabase.com:5432   WORKS
+true direct     db.<ref>.supabase.co:5432                   ENOTFOUND
+```
+
+**Changed**
+- `DIRECT_URL` now uses the **session pooler** (pooler host, port 5432). It speaks the full protocol
+  and runs DDL; only the *transaction* pooler on 6543 cannot.
+- Replaced `drizzle-kit migrate` with `scripts/migrate.ts` using drizzle-orm's own migrator, which
+  **throws**. It also refuses outright to run against port 6543.
+- Suppressed the driver's `NOTICE` output so a second run is clean rather than looking like errors.
+
+**Cost** ~25 minutes, most of it spent believing the seed was broken.
+
+## 2026-08-24 · My own db:check passed while the thing it checked was broken
+
+`db:check` validated ports and printed hostnames, then connected using **`DATABASE_URL` only**. So it
+reported green while `DIRECT_URL` pointed at a host that did not exist.
+
+A check that does not exercise the thing it is checking is not a check — it is a comment that runs.
+It now opens a real connection with `DIRECT_URL` too, and translates `ENOTFOUND` into the actual
+advice (use the session pooler).
