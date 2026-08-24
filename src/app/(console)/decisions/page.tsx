@@ -1,5 +1,5 @@
 import { decisionTotals, listDecisions } from "@/core/db/queries";
-import { Empty, Id, Money, Outcome, PageHeading, StatTile } from "../ui";
+import { asMoney, Empty, Id, Money, Outcome, PageHeading, StatTile } from "../ui";
 
 // Reads live data on every request. Without this Next prerenders it and bakes the seed in.
 export const dynamic = "force-dynamic";
@@ -45,7 +45,9 @@ export default async function DecisionsPage() {
                     <>
                       <div className="font-mono text-xs">{d.reasons[0].code}</div>
                       {d.reasons[0].observed && (
-                        <div className="text-xs text-fg-3">asked {d.reasons[0].observed} · limit {String(d.reasons[0].expected)}</div>
+                        <div className="text-xs text-fg-3">
+                          asked {asMoney(d.reasons[0].observed)} · limit {asMoney(d.reasons[0].expected)}
+                        </div>
                       )}
                     </>
                   )}

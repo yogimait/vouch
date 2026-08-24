@@ -61,3 +61,9 @@ export function Empty({ title, hint }: { title: string; hint: string }) {
     </div>
   );
 }
+
+/** Reason values carry paise as strings. A count (catalog.inventory) is left alone. */
+export function asMoney(value: string | string[] | undefined): string {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return String(value ?? "—");
+  return formatInr(BigInt(value));
+}
