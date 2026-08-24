@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Black and teal. Tokens live here because Tailwind v4 is CSS-configured — there is no config file. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: #08080a;
+  --color-surface: #121214;
+  --color-raised: #17171a;
+  --color-hairline: #232328;
+
+  --color-fg: #ededef;
+  --color-fg-2: #8a8a94;
+  --color-fg-3: #5a5a63;
+
+  --color-accent: #2dd4bf;
+  --color-accent-bright: #5eead4;
+  --color-accent-dim: #14b8a6;
+
+  /* ADMIT is the accent: in an admission console the positive outcome is the brand colour. */
+  --color-admit: #2dd4bf;
+  --color-escalate: #f5a524;
+  --color-refuse: #f0526d;
+
+  --font-display: var(--font-share-tech), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Elevated surfaces only. Never behind table data — blur under 11px mono destroys legibility. */
+@utility glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Subliminal atmosphere so the glass has something to refract. Never a visible gradient band. */
+@utility atmosphere {
+  background-image:
+    radial-gradient(60rem 40rem at 12% -10%, rgba(20, 184, 166, 0.08), transparent 60%),
+    radial-gradient(50rem 35rem at 92% 108%, rgba(15, 118, 110, 0.06), transparent 60%);
+}
+
+@utility label {
+  font-size: 11px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-fg-3);
 }
