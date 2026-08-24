@@ -13,7 +13,7 @@ const boundaries = [
     // The admission engine decides whether money moves. It must stay pure so determinism is
     // testable with no database and no keys. Banning node:crypto is deliberate: it forces
     // "the offer signature was valid" to arrive as a boolean on the context.
-    files: ["core/engine/**/*.ts"],
+    files: ["src/core/engine/**/*.ts"],
     rules: {
       "no-restricted-imports": ["error", {
         patterns: [{
@@ -26,7 +26,7 @@ const boundaries = [
   },
   {
     // Enforcement the agent can bypass is not enforcement.
-    files: ["agent/**/*.ts"],
+    files: ["src/agent/**/*.ts"],
     rules: {
       "no-restricted-imports": ["error", {
         patterns: [{
@@ -38,7 +38,7 @@ const boundaries = [
   },
   {
     // Both surfaces go through the shared function layer, so neither can grow its own logic.
-    files: ["app/api/**/*.ts", "mcp/**/*.ts"],
+    files: ["src/app/api/**/*.ts", "src/mcp/**/*.ts"],
     rules: {
       "no-restricted-imports": ["error", {
         patterns: [{
@@ -50,11 +50,11 @@ const boundaries = [
   },
   {
     // A long routing file means logic escaped into it.
-    files: ["app/**/route.ts"],
+    files: ["src/app/**/route.ts"],
     rules: { "max-lines": ["error", { max: 12, skipBlankLines: false, skipComments: false }] },
   },
   {
-    files: ["app/**/page.tsx"],
+    files: ["src/app/**/page.tsx"],
     rules: { "max-lines": ["error", { max: 60, skipBlankLines: true, skipComments: true }] },
   },
 ];
@@ -63,5 +63,5 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   ...boundaries,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "core/db/migrations/**", "evidence/**"]),
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "src/core/db/migrations/**", "evidence/**"]),
 ]);

@@ -22,7 +22,7 @@ console.error(`migrating via ${hostname}:${port}`);
 const client = postgres(url, { max: 1, prepare: false, connect_timeout: 20, onnotice: () => {} });
 
 try {
-  await migrate(drizzle(client), { migrationsFolder: "./core/db/migrations" });
+  await migrate(drizzle(client), { migrationsFolder: "./src/core/db/migrations" });
   console.error("migrations applied");
 } catch (error) {
   console.error("\nMIGRATION FAILED");
