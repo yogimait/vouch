@@ -57,3 +57,39 @@ day 9 instead of day 0 would have cost a demo.
 `npm audit --omit=dev` reports **0**. The fix is `--force`, which downgrades/breaks `drizzle-kit`.
 Left as-is deliberately: dev-only, CLI-only, and the esbuild advisory concerns its dev server, which
 we never run.
+
+## 2026-08-24 · tsconfig targeted ES2017, so BigInt literals did not compile
+
+**Expected** `npm run typecheck` clean after writing `core/money.ts`.
+
+**Happened** 20 errors, all the same:
+
+```
+error TS2737: BigInt literals are not available when targeting lower than ES2020.
+```
+
+`create-next-app` writes `"target": "ES2017"`. This project's single hardest rule is that money is
+`bigint` paise and no float ever touches it — so the default target forbids the one thing the design
+depends on. It compiled fine at runtime (esbuild and SWC don't care), which is worse: the rule would
+have been silently unenforceable in the editor while looking correct.
+
+**Changed** `"target": "ES2022"`.
+
+**Cost** ~5 minutes, and then another 10 on the next entry.
+
+## 2026-08-24 · Typecheck kept failing after the fix — stale incremental cache
+
+After bumping the target, `npm run typecheck` still reported the same ES2017 errors. The file was
+correct; `grep` confirmed `"target": "ES2022"` on line 3.
+
+Cause: `"incremental": true` plus a `tsconfig.tsbuildinfo` written under the old target. `tsc` trusted
+the cache. `rm tsconfig.tsbuildinfo` and it passed clean.
+
+Kept here because the symptom actively lies — the config is right, the tool says it is wrong, and the
+instinct is to keep editing the config.
+
+## 2026-08-24 · Boundary lint proved rather than assumed
+
+Wrote a throwaway `core/engine/_boundary_probe.ts` importing both `@/core/db` and `node:crypto`, ran
+eslint, confirmed **two** errors fired, deleted it. An architectural rule nobody has seen fail is a
+rule you do not know you have.

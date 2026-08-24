@@ -11,7 +11,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "probe": "tsx --env-file=.env.local scripts/probe.ts"
+    "probe": "tsx --env-file=.env.local scripts/probe.ts",
+    "keygen": "tsx scripts/keygen.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx --env-file=.env.local core/db/seed.ts",
+    "db:check": "tsx --env-file=.env.local scripts/db-check.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.30",
