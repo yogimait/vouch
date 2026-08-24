@@ -5,7 +5,9 @@ import { z } from "zod";
 const Schema = z.object({
   RAZORPAY_KEY_ID: z.string().startsWith("rzp_test_", "Refusing to run against a non-test key"),
   RAZORPAY_KEY_SECRET: z.string().min(1),
-  RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
+  // Optional on purpose: one strict parse means an unset value here would fail order creation,
+  // which does not use it. Absent means every webhook fails verification — the safe direction.
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 
   DATABASE_URL: z.string().url(),
   DIRECT_URL: z.string().url().optional(),

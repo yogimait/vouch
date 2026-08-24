@@ -10,7 +10,7 @@ import { newId } from "@/core/ids";
 import { writeAudit } from "@/core/audit/log";
 import { evaluate } from "@/core/engine/engine";
 import type { AdmissionContext, AdmissionResult, Reason } from "@/core/engine/types";
-import { balances, reserve } from "@/core/ledger";
+import { balances, release, reserve } from "@/core/ledger";
 import { setOrderState } from "@/core/orders/state";
 import { verifyOffer, type VerifiedOffer } from "@/core/offers/verify";
 import { createOrder, createPaymentLink, GatewayError } from "@/core/razorpay";
@@ -338,6 +338,17 @@ async function escalate(args: BranchInput & { reasons: Reason[] }): Promise<PayR
 async function gatewayFailed(orderId: string, decisionId: string, error: unknown): Promise<PayResult> {
   const detail = error instanceof GatewayError ? error.message : String(error);
   await setOrderState({ orderId, next: "FAILED", failureReason: detail.slice(0, 500) });
+
+  // Give the hold back. Without this a gateway outage silently eats the agent's headroom, and the
+  // ESCALATE path never reserved, so release is a no-op there.
+  const given = await release(orderId);
+  if (given.applied) {
+    await writeAudit({
+      eventType: "RELEASE", actor: "guard", orderId,
+      payload: { amountPaise: given.amountPaise.toString(), reason: "gateway failed" },
+    });
+  }
+
   await writeAudit({ eventType: "ORDER_FAILED", actor: "guard", orderId, payload: { reason: detail.slice(0, 500) } });
   return {
     outcome: "REFUSE", decisionId, code: "GATEWAY_UNAVAILABLE",

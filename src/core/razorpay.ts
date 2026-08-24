@@ -79,7 +79,15 @@ export async function getPaymentLink(linkId: string): Promise<GatewayLinkStatus>
  */
 export function verifyWebhookSignature(rawBody: string, header: string | null): boolean {
   if (!header) return false;
-  const expected = createHmac("sha256", env().RAZORPAY_WEBHOOK_SECRET).update(rawBody).digest();
+
+  // No secret configured means nothing can be trusted, so nothing is. Never treat it as "skip".
+  const secret = env().RAZORPAY_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error("RAZORPAY_WEBHOOK_SECRET is not set — refusing every webhook.");
+    return false;
+  }
+
+  const expected = createHmac("sha256", secret).update(rawBody).digest();
   let received: Buffer;
   try {
     received = Buffer.from(header, "hex");

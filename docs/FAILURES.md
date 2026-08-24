@@ -174,3 +174,40 @@ pay_TThvnSZb9n3zRv   captured   card   ₹100.00   headless, no human
 
 **Cost** ~50 minutes, ten runs. Worth every minute: the gate is the assumption the plan is built on,
 and five of its six failure modes were invisible from the documentation.
+
+## 2026-08-25 · One strict env parse failed a path that does not use the variable
+
+`env()` parses every variable in one `safeParse`. `RAZORPAY_WEBHOOK_SECRET` was `min(1)` and the
+`.env.local` value was empty, so **order creation** threw — a path that has nothing to do with
+webhooks. Inside `pay()` that surfaced as `GATEWAY_UNAVAILABLE`, which points at Razorpay.
+
+Razorpay was fine. Creating the same order with `curl` returned `200`.
+
+The secret is now `optional()`, and `verifyWebhookSignature` returns `false` when it is absent —
+no secret configured means nothing can be trusted, so nothing is. A missing secret must never read
+as "skip verification".
+
+**Cost** ~10 minutes. Worth naming because the error message actively pointed away from the cause:
+an aggregated validator turns "one unrelated value is unset" into "the payment gateway is down".
+
+## 2026-08-25 · A gateway failure silently ate the agent's headroom
+
+Found by running the orchestrator rather than by reading it. Three attempts against a ₹9,000
+authorization left it showing:
+
+```
+debited ₹0.00   held ₹7,000.00   available ₹2,000.00
+```
+
+`pay()` reserved, then called the gateway, and on failure set the order to `FAILED` — without
+releasing the hold. Every gateway outage would have permanently shrunk what the agent could spend,
+with no debit anywhere to explain it. Two failed orders were enough to consume 78% of the
+authorization.
+
+`gatewayFailed` now releases. The ESCALATE path never reserves, so release is a no-op there.
+
+The regression test forces a **real 401 from Razorpay** with a wrong secret rather than mocking
+`fetch` — a mocked failure proves the test's idea of failure, not the gateway's. It also asserts the
+split the whole project argues for: the **decision stays `ADMIT`** while the **order goes `FAILED`**.
+The gate said yes; the settlement did not happen. Those are different numbers and they live in
+different tables.
