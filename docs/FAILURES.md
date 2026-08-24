@@ -137,3 +137,40 @@ reported green while `DIRECT_URL` pointed at a host that did not exist.
 A check that does not exercise the thing it is checking is not a check — it is a comment that runs.
 It now opens a real connection with `DIRECT_URL` too, and translates `ENOTFOUND` into the actual
 advice (use the session pooler).
+
+## 2026-08-25 · The day-0 gate: six wrong assumptions before a payment captured
+
+The gate is the one task that could have invalidated the whole plan, and every layer of it was
+different from what the docs implied. Each line below is a separate failed run.
+
+| # | Assumption | Reality | How it surfaced |
+|---|---|---|---|
+| 1 | `page.evaluate(fn)` works under `tsx` | `ReferenceError: __name is not defined` — esbuild's `keepNames` injects a helper into the function source, which is then serialised and shipped to a browser that has never heard of it | Passed the expression as a **string**; a string is never transpiled |
+| 2 | The payment link page is the page | It is a shell. The entire checkout is an iframe on `api.razorpay.com/v1/checkout/public` — 0 inputs at the top level | Resolve the frame whose URL contains `/checkout/`, drive that |
+| 3 | Checkout opens on payment methods | Checkout **v2** opens on a contact gate. No method is visible until a mobile number is accepted | Walk the screens, dumping each one |
+| 4 | `fill()` sets a form value | *"Please enter a valid mobile number."* The validator listens per keystroke, so a programmatic set leaves it in an invalid state | `pressSequentially` with a delay |
+| 5 | Test UPI (`success@razorpay`) is available | `GET /v1/preferences` → **`upi: false`**, `upi_type: {collect:0, intent:0}`. UPI is not enabled on this account, so the documented test VPAs are unreachable on *any* page | Card instead |
+| 6 | `4111 1111 1111 1111` is *the* test card | *"this business accepts domestic (Indian) card payments only."* That BIN is international | Domestic test card `5267 3181 8797 5449` |
+
+Two more sat behind those: a **"save your card?"** interstitial blocks the submit until dismissed,
+and the final step is not a bank 3DS page at all but **Razorpay's own OTP screen**, whose submit
+button carries no accessible name — `getByRole("button", {name:/continue/i})` times out against it.
+Submitting with **Enter** works.
+
+**The two things that actually mattered**
+
+`GET /v1/preferences?key_id=…` is public and reports exactly which methods the account has. Reading
+it first would have skipped runs 5 and the UPI work entirely.
+
+`GET /v1/payments` gives the real reason. The browser sat on *"Confirming Payment"* forever with
+nothing in the DOM to read; the API said *"domestic card payments only"* in plain words. **When a
+hosted page goes quiet, ask the API what it thinks happened** — the UI is not where the error is.
+
+**Result**
+
+```
+pay_TThvnSZb9n3zRv   captured   card   ₹100.00   headless, no human
+```
+
+**Cost** ~50 minutes, ten runs. Worth every minute: the gate is the assumption the plan is built on,
+and five of its six failure modes were invisible from the documentation.

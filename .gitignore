@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 !.env.example
+
+# Probe/demo artefacts: regenerable, ~14MB, and the dumped URLs carry live session tokens.
+# The durable proof is the captured payment id recorded in docs/FAILURES.md.
+evidence/
