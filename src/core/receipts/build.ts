@@ -179,10 +179,12 @@ async function auditRange(orderId: string): Promise<Record<string, unknown>> {
     select row_hash from audit_log where order_id = ${orderId} order by seq desc limit 1
   `)) as unknown as { row_hash: string }[];
 
+  // Named for what it counts. The chain is global, so verifying this seq range walks every row in
+  // it — including other orders' — and that number is legitimately larger than this one.
   return {
     seq_from: row?.seq_from ?? null,
     seq_to: row?.seq_to ?? null,
-    rows: Number(paiseFromSql(row?.rows ?? "0")),
+    rows_from_this_order: Number(paiseFromSql(row?.rows ?? "0")),
     head_hash: head?.row_hash ?? null,
   };
 }

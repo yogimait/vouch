@@ -67,3 +67,28 @@ export function asMoney(value: string | string[] | undefined): string {
   if (typeof value !== "string" || !/^\d+$/.test(value)) return String(value ?? "—");
   return formatInr(BigInt(value));
 }
+
+interface VerdictProps {
+  valid: boolean;
+  signatureValid: boolean;
+  tampered: string[];
+  chain?: { valid: boolean; rowsChecked: number; brokenAt: string | null };
+}
+
+/** States the verdict and what produced it, because "valid" alone is not evidence of anything. */
+export function Verdict({ valid, signatureValid, tampered, chain }: VerdictProps) {
+  return (
+    <section className={`glass rounded-lg border p-6 ${valid ? "border-admit/30" : "border-refuse/40"}`}>
+      <div className={`font-display text-2xl ${valid ? "text-admit" : "text-refuse"}`}>
+        {valid ? "Verified" : "Does not verify"}
+      </div>
+      <div className="mt-4 grid gap-x-12 gap-y-1 sm:grid-cols-3">
+        <Field label="signature">{signatureValid ? "valid" : "FAILED"}</Field>
+        <Field label="blocks">{tampered.length ? `ALTERED: ${tampered.join(", ")}` : "all six intact"}</Field>
+        <Field label="audit chain">
+          {chain ? (chain.valid ? `intact across ${chain.rowsChecked} rows in range` : `BROKEN at ${chain.brokenAt}`) : "not anchored"}
+        </Field>
+      </div>
+    </section>
+  );
+}

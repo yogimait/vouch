@@ -198,7 +198,9 @@ async function main(): Promise<void> {
       const ctx = clone(base);
       CLASSES.find((k) => k.label === a.label)!.mutate(ctx, i % PER_CLASS);
       const result = evaluate(ctx);
-      result.latencyMs = Math.max(1, Math.round(a.micros / 1000));
+      // Rounds to 0 for a 2us decision, and the console renders that as "<1ms". Clamping it to 1
+      // would overstate the engine by roughly 500x in the one place anyone reads a latency.
+      result.latencyMs = Math.round(a.micros / 1000);
       await recordDecision({
         agentId: base.agent.id, source: "harness", label: a.label, result,
         authorizationId: base.authorization!.id, policySnapshot: base.policySnapshot,

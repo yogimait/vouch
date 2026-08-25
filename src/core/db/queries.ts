@@ -2,7 +2,8 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import {
-  authorizationLedger, authorizations, buyerAgents, catalogItems, decisions, offers,
+  authorizationLedger, authorizations, buyerAgents, catalogItems, decisions, misquoteEvents,
+  offers, orders, receipts,
 } from "@/core/db/schema";
 import { paiseFromSql } from "@/core/money";
 import type { DecisionReason } from "@/core/db/schema";
@@ -140,4 +141,130 @@ export async function listAuthorizations(): Promise<AuthorizationView[]> {
       frequency: a.frequency,
     };
   });
+}
+
+export interface ReceiptRow {
+  id: string;
+  orderId: string;
+  sku: string;
+  qty: number;
+  amountPaise: bigint;
+  agentName: string;
+  outcome: string;
+  signedAt: Date;
+  razorpayPaymentId: string | null;
+  blockHashes: Record<string, string>;
+  body: string;
+}
+
+export async function listReceipts(limit = 50): Promise<ReceiptRow[]> {
+  const rows = await getDb()
+    .select({
+      id: receipts.id,
+      orderId: receipts.orderId,
+      body: receipts.body,
+      blockHashes: receipts.blockHashes,
+      signedAt: receipts.signedAt,
+      sku: offers.sku,
+      qty: offers.qty,
+      amount: sql<string>`${orders.amountPaise}::text`,
+      agentName: buyerAgents.name,
+      outcome: decisions.outcome,
+      razorpayPaymentId: orders.razorpayPaymentId,
+    })
+    .from(receipts)
+    .innerJoin(orders, eq(orders.id, receipts.orderId))
+    .innerJoin(offers, eq(offers.id, orders.offerId))
+    .leftJoin(buyerAgents, eq(buyerAgents.id, orders.agentId))
+    .leftJoin(decisions, eq(decisions.orderId, orders.id))
+    .orderBy(desc(receipts.signedAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    ...r,
+    agentName: r.agentName ?? "unknown",
+    outcome: r.outcome ?? "—",
+    amountPaise: paiseFromSql(r.amount),
+  }));
+}
+
+export interface MisquoteRow {
+  id: string;
+  createdAt: Date;
+  agentName: string;
+  kind: string;
+  claimedPaise: bigint | null;
+  signedPaise: bigint | null;
+  claimedDiscountCode: string | null;
+  rawAgentText: string | null;
+  source: string;
+}
+
+/** Returned with `source` intact. The page splits on it; nothing here blends llm and harness. */
+export async function listMisquotes(limit = 100): Promise<MisquoteRow[]> {
+  const rows = await getDb()
+    .select({
+      id: misquoteEvents.id,
+      createdAt: misquoteEvents.createdAt,
+      agentName: buyerAgents.name,
+      kind: misquoteEvents.kind,
+      claimed: sql<string | null>`${misquoteEvents.claimedPaise}::text`,
+      signed: sql<string | null>`${misquoteEvents.signedPaise}::text`,
+      claimedDiscountCode: misquoteEvents.claimedDiscountCode,
+      rawAgentText: misquoteEvents.rawAgentText,
+      source: misquoteEvents.source,
+    })
+    .from(misquoteEvents)
+    .leftJoin(buyerAgents, eq(buyerAgents.id, misquoteEvents.agentId))
+    .orderBy(desc(misquoteEvents.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    ...r,
+    agentName: r.agentName ?? "unknown",
+    claimedPaise: r.claimed === null ? null : paiseFromSql(r.claimed),
+    signedPaise: r.signed === null ? null : paiseFromSql(r.signed),
+  }));
+}
+
+export interface GateRow { source: string; label: string | null; outcome: string; n: number; p50Ms: number }
+export interface SettlementTotals { attempted: number; paid: number; failed: number; debitedPaise: bigint; releasedPaise: bigint }
+
+/** The gate ledger, grouped. Never joined to settlement — they answer different questions. */
+export async function gateBreakdown(): Promise<GateRow[]> {
+  const rows = (await getDb().execute(sql`
+    select source, label, outcome, count(*)::text as n,
+           coalesce(percentile_disc(0.5) within group (order by latency_ms), 0)::text as p50
+    from decisions
+    group by source, label, outcome
+    order by source, label nulls first, outcome
+  `)) as unknown as Record<string, string | null>[];
+
+  return rows.map((r) => ({
+    source: String(r.source),
+    label: r.label,
+    outcome: String(r.outcome),
+    n: Number(r.n),
+    p50Ms: Number(r.p50),
+  }));
+}
+
+export async function settlementTotals(): Promise<SettlementTotals> {
+  const [row] = (await getDb().execute(sql`
+    select
+      count(*)::text as attempted,
+      count(*) filter (where state = 'PAID')::text as paid,
+      count(*) filter (where state = 'FAILED')::text as failed,
+      (select coalesce(sum(amount_paise) filter (where entry_type = 'COMMIT'), 0)::text from authorization_ledger) as debited,
+      (select coalesce(sum(amount_paise) filter (where entry_type = 'RELEASE'), 0)::text from authorization_ledger) as released
+    from orders
+  `)) as unknown as Record<string, string>[];
+
+  return {
+    attempted: Number(row.attempted),
+    paid: Number(row.paid),
+    failed: Number(row.failed),
+    debitedPaise: paiseFromSql(row.debited),
+    releasedPaise: paiseFromSql(row.released),
+  };
 }
