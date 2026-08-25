@@ -47,3 +47,6 @@ evidence/
 
 # Scratch MCP handshake input, written when probing the stdio server.
 mcpreq.jsonl
+
+# Working notes stay local: the plan and the failure log are for the submission form, not the repo.
+docs/
