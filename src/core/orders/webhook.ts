@@ -6,7 +6,8 @@ import { getDb } from "@/core/db";
 import { orders, webhookEvents } from "@/core/db/schema";
 import { newId } from "@/core/ids";
 import { writeAudit } from "@/core/audit/log";
-import { commit, release } from "@/core/ledger";
+import { release } from "@/core/ledger";
+import { settleOrder } from "@/core/orders/settle";
 import { setOrderState } from "@/core/orders/state";
 import { verifyWebhookSignature } from "@/core/razorpay";
 
@@ -89,24 +90,10 @@ async function settled(
   hash: string,
 ): Promise<WebhookResult> {
   const paymentId = body.payload?.payment?.entity?.id ?? null;
-  const moved = await setOrderState({
-    orderId: order.id, next: "PAID", razorpayPaymentId: paymentId, settledAt: new Date(),
-  });
-
-  // COMMIT only alongside a real transition. A replay that finds the order already PAID must not
-  // debit the authorization a second time.
-  if (moved.changed) {
-    const done = await commit(order.id);
-    await writeAudit({
-      eventType: "COMMIT",
-      actor: "guard",
-      orderId: order.id,
-      payload: { amountPaise: done.amountPaise.toString(), applied: done.applied, razorpayPaymentId: paymentId, rawBodySha256: hash },
-    });
-  }
+  const settlement = await settleOrder(order.id, paymentId, { source: "webhook", rawBodySha256: hash });
 
   await markProcessed(hash);
-  return { accepted: true, reason: moved.changed ? "processed" : "replayed", orderId: order.id };
+  return { accepted: true, reason: settlement.changed ? "processed" : "replayed", orderId: order.id };
 }
 
 async function failed(order: typeof orders.$inferSelect, body: Payload): Promise<WebhookResult> {

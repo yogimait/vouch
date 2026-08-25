@@ -211,3 +211,20 @@ The regression test forces a **real 401 from Razorpay** with a wrong secret rath
 split the whole project argues for: the **decision stays `ADMIT`** while the **order goes `FAILED`**.
 The gate said yes; the settlement did not happen. Those are different numbers and they live in
 different tables.
+
+## 2026-08-25 · Settling started issuing receipts, and a test teardown deleted the order first
+
+`receipts.order_id` references `orders.id`. The webhook test's `afterAll` predated receipts, so the
+moment settlement began issuing one, teardown hit:
+
+```
+Key (id)=(ord_WH1787656369246) is still referenced from table "receipts"
+```
+
+Every assertion passed — **96 tests green, one file red**. The failure was entirely in cleanup, which
+is the kind that looks alarming and means nothing, and the kind that leaves rows behind. Both were
+true: the stale order had to be deleted by hand before the suite was clean again.
+
+Teardown now deletes receipts first. Worth noting because adding a write to a shared code path
+silently made an unrelated test's cleanup wrong — the foreign key caught it, which is the argument
+for having the foreign key.

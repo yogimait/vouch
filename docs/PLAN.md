@@ -9,7 +9,7 @@
 > - [x] **Day 2** — Ed25519 keygen, two-segment token codec, offer issue + verify, **tamper suite written before the verifier shipped** (17 cases)
 > - [x] **Day 3** — admission engine: 13 ordered rules, ADMIT/ESCALATE/REFUSE, escalatable-on-the-reason, fixtures, trip table, 1000-run determinism, three deny-by-default paths. Moved to `src/`.
 > - [x] **Day 4** — orchestrator: idempotency, audit-before-money, RESERVE under advisory lock, state machine, webhook. Ledger race + double-delivery proved against real Postgres
-> - [ ] **Day 5** — receipt build/sign/verify/export · demo 5
+> - [x] **Day 5** — receipt: six independently hashed blocks, sign, verify, export bundle, `npm run receipt`. **Demo 5 works.** Plus the authorization device (`npm run device`), so ADMIT now settles for real
 > - [ ] **Day 6** — the four shared functions, MCP stdio server, HTTP routes, device watcher · demo 1
 > - [ ] **Day 7** — buyer agent (Groq) · demo 2
 > - [ ] **Day 8** — demos 3 and 4, `failure@razorpay` + RELEASE

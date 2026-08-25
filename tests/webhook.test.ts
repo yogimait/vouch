@@ -76,6 +76,8 @@ suite("razorpay webhook", () => {
   });
 
   afterAll(async () => {
+    // Settling now issues a receipt, and receipts reference orders.
+    await db.execute(sql`delete from receipts where order_id = ${orderId}`);
     await db.execute(sql`delete from webhook_events where order_id = ${orderId}`);
     await db.execute(sql`delete from audit_log where order_id = ${orderId}`);
     await db.execute(sql`delete from authorization_ledger where authorization_id = ${authId}`);

@@ -17,7 +17,9 @@
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
     "db:seed": "tsx --env-file=.env.local src/core/db/seed.ts",
     "db:check": "tsx --env-file=.env.local scripts/db-check.ts",
-    "db:status": "tsx --env-file=.env.local scripts/db-status.ts"
+    "db:status": "tsx --env-file=.env.local scripts/db-status.ts",
+    "receipt": "tsx --env-file=.env.local scripts/receipt.ts",
+    "device": "tsx --env-file=.env.local scripts/device.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.30",
