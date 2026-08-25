@@ -44,3 +44,6 @@ next-env.d.ts
 # Probe/demo artefacts: regenerable, ~14MB, and the dumped URLs carry live session tokens.
 # The durable proof is the captured payment id recorded in docs/FAILURES.md.
 evidence/
+
+# Scratch MCP handshake input, written when probing the stdio server.
+mcpreq.jsonl
