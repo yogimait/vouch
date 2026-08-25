@@ -6,9 +6,7 @@ import { getDb } from "@/core/db";
 import { orders, webhookEvents } from "@/core/db/schema";
 import { newId } from "@/core/ids";
 import { writeAudit } from "@/core/audit/log";
-import { release } from "@/core/ledger";
-import { settleOrder } from "@/core/orders/settle";
-import { setOrderState } from "@/core/orders/state";
+import { failOrder, settleOrder } from "@/core/orders/settle";
 import { verifyWebhookSignature } from "@/core/razorpay";
 
 export interface WebhookResult {
@@ -98,18 +96,7 @@ async function settled(
 
 async function failed(order: typeof orders.$inferSelect, body: Payload): Promise<WebhookResult> {
   const reason = body.payload?.payment?.entity?.error_description ?? "payment failed";
-  const moved = await setOrderState({ orderId: order.id, next: "FAILED", failureReason: reason });
-
-  if (moved.changed) {
-    const given = await release(order.id);
-    await writeAudit({
-      eventType: "RELEASE",
-      actor: "guard",
-      orderId: order.id,
-      payload: { amountPaise: given.amountPaise.toString(), applied: given.applied, reason },
-    });
-  }
-
+  const moved = await failOrder(order.id, reason, { source: "webhook" });
   return { accepted: true, reason: moved.changed ? "processed" : "replayed", orderId: order.id };
 }
 

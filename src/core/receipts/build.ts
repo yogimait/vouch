@@ -56,8 +56,10 @@ export async function issueReceipt(orderId: string): Promise<BuildResult> {
   const [offer] = await db.select().from(offers).where(eq(offers.id, order.offerId)).limit(1);
   const [auth] = await db.select().from(authorizations).where(eq(authorizations.id, order.authorizationId)).limit(1);
   const [merchant] = await db.select().from(merchants).where(eq(merchants.id, offer.merchantId)).limit(1);
+  // Not filtered to ADMIT: an escalated order that a human paid has an ESCALATE decision, and that
+  // is precisely what its receipt has to show — the agent was refused, a person overrode it.
   const [decision] = await db.select().from(decisions)
-    .where(and(eq(decisions.orderId, orderId), eq(decisions.outcome, "ADMIT"))).limit(1);
+    .where(eq(decisions.orderId, orderId)).limit(1);
   const [hook] = await db.select().from(webhookEvents)
     .where(and(eq(webhookEvents.orderId, orderId), eq(webhookEvents.signatureVerified, true)))
     .orderBy(desc(webhookEvents.receivedAt)).limit(1);

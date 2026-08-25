@@ -96,3 +96,11 @@ export function verifyWebhookSignature(rawBody: string, header: string | null): 
   }
   return received.length === expected.length && timingSafeEqual(received, expected);
 }
+
+export interface GatewayPayment { id: string; status: string; amount: number; error_description?: string }
+
+/** The order is the authority when no payment link exists — which is now the ADMIT path. */
+export async function getOrderPayments(razorpayOrderId: string): Promise<GatewayPayment[]> {
+  const res = await call<{ items?: GatewayPayment[] }>(`/orders/${razorpayOrderId}/payments`);
+  return res.items ?? [];
+}

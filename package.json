@@ -22,7 +22,9 @@
     "device": "tsx --env-file=.env.local scripts/device.ts",
     "mcp": "tsx --env-file=.env.local src/mcp/server.ts",
     "demo:1": "tsx --env-file=.env.local scripts/demo1.ts",
-    "demo:2": "tsx --env-file=.env.local scripts/demo2.ts"
+    "demo:2": "tsx --env-file=.env.local scripts/demo2.ts",
+    "demo:3": "tsx --env-file=.env.local scripts/demo3.ts",
+    "demo:4": "tsx --env-file=.env.local scripts/demo4.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.30",

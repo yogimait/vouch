@@ -287,15 +287,14 @@ async function admit(
     const gatewayOrder = await createOrder({
       orderId, amountPaise: offer.totalPaise, notes: { agent_id: input.agentId, offer_id: offer.row.id },
     });
-    const link = await createPaymentLink({
-      orderId,
-      amountPaise: offer.totalPaise,
-      description: `${offer.row.qty} x ${offer.row.sku}`,
-      notes: { agent_id: input.agentId, offer_id: offer.row.id },
-    });
+
+    // Standard Checkout on our own page, not a payment link. A link exists to be sent to a person,
+    // and test mode caps them at 30 for the lifetime of the account — spending one on a machine
+    // authorizer is both the wrong mechanism and a quota we cannot get back.
+    const authorizationUrl = `${appUrl()}/pay/${orderId}`;
 
     await getDb().update(orders)
-      .set({ razorpayOrderId: gatewayOrder.id, razorpayPaymentLinkId: link.id, authorizationUrl: link.short_url })
+      .set({ razorpayOrderId: gatewayOrder.id, authorizationUrl })
       .where(eq(orders.id, orderId));
     await setOrderState({ orderId, next: "AWAITING_AUTHORIZATION" });
 
@@ -304,10 +303,10 @@ async function admit(
       actor: "guard",
       agentId: input.agentId,
       orderId,
-      payload: { razorpayOrderId: gatewayOrder.id, paymentLinkId: link.id },
+      payload: { razorpayOrderId: gatewayOrder.id, authorizationUrl },
     });
 
-    return { outcome: "ADMIT", decisionId, orderId, amountPaise: offer.totalPaise, authorizationUrl: link.short_url, replayed: false };
+    return { outcome: "ADMIT", decisionId, orderId, amountPaise: offer.totalPaise, authorizationUrl, replayed: false };
   } catch (error) {
     return gatewayFailed(orderId, decisionId, error);
   }
@@ -317,22 +316,41 @@ async function admit(
 async function escalate(args: BranchInput & { reasons: Reason[] }): Promise<PayResult> {
   const { input, orderId, decisionId, offer, reasons } = args;
   try {
-    const link = await createPaymentLink({
-      orderId,
-      amountPaise: offer.totalPaise,
-      description: `Approval needed: ${offer.row.qty} x ${offer.row.sku}`,
-      notes: { agent_id: input.agentId, offer_id: offer.row.id, escalated: "true" },
+    // A person needs a URL that outlives this process, so a Razorpay-hosted link is the right
+    // mechanism here. Test mode allows 30 for the account's lifetime, so when the gateway refuses
+    // we degrade to our own checkout page rather than failing an escalation over a quota.
+    const gatewayOrder = await createOrder({
+      orderId, amountPaise: offer.totalPaise, notes: { agent_id: input.agentId, offer_id: offer.row.id, escalated: "true" },
     });
 
+    let link: { id: string; short_url: string } | null = null;
+    try {
+      link = await createPaymentLink({
+        orderId,
+        amountPaise: offer.totalPaise,
+        description: `Approval needed: ${offer.row.qty} x ${offer.row.sku}`,
+        notes: { agent_id: input.agentId, offer_id: offer.row.id, escalated: "true" },
+      });
+    } catch (error) {
+      if (!(error instanceof GatewayError) || error.status !== 429) throw error;
+      console.error(`[escalate] payment link quota exhausted, using the merchant's own page`);
+    }
+
+    const authorizationUrl = link?.short_url ?? `${appUrl()}/pay/${orderId}`;
     await getDb().update(orders)
-      .set({ razorpayPaymentLinkId: link.id, authorizationUrl: link.short_url })
+      .set({ razorpayOrderId: gatewayOrder.id, razorpayPaymentLinkId: link?.id ?? null, authorizationUrl })
       .where(eq(orders.id, orderId));
     await setOrderState({ orderId, next: "ESCALATED" });
 
-    return { outcome: "ESCALATE", decisionId, orderId, amountPaise: offer.totalPaise, paymentLink: link.short_url, reasons, replayed: false };
+    return { outcome: "ESCALATE", decisionId, orderId, amountPaise: offer.totalPaise, paymentLink: authorizationUrl, reasons, replayed: false };
   } catch (error) {
     return gatewayFailed(orderId, decisionId, error);
   }
+}
+
+/** Trailing slashes make a URL that looks right and 404s. */
+function appUrl(): string {
+  return (process.env.APP_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 }
 
 async function gatewayFailed(orderId: string, decisionId: string, error: unknown): Promise<PayResult> {
