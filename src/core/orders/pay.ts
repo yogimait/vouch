@@ -8,6 +8,7 @@ import {
 } from "@/core/db/schema";
 import { newId } from "@/core/ids";
 import { writeAudit } from "@/core/audit/log";
+import { recordDecision } from "@/core/decisions";
 import { evaluate } from "@/core/engine/engine";
 import type { AdmissionContext, AdmissionResult, Reason } from "@/core/engine/types";
 import { balances, release, reserve } from "@/core/ledger";
@@ -49,58 +50,6 @@ async function decisionIdFor(orderId: string): Promise<string> {
   return row?.id ?? "";
 }
 
-interface RecordInput {
-  input: PayInput;
-  result: AdmissionResult;
-  offerId: string | null;
-  authorizationId: string | null;
-  orderId: string | null;
-  balanceBeforePaise: bigint | null;
-  policySnapshot: Record<string, unknown>;
-}
-
-/** Audit first, then the decision row. Nothing downstream runs until both have landed. */
-async function record(r: RecordInput): Promise<string> {
-  const decisionId = newId("decision");
-
-  await writeAudit({
-    eventType: "DECISION",
-    actor: `agent:${r.input.agentId}`,
-    agentId: r.input.agentId,
-    orderId: r.orderId,
-    payload: {
-      decisionId,
-      outcome: r.result.outcome,
-      reasons: r.result.reasons,
-      matchedRules: r.result.matchedRules,
-      offerId: r.offerId,
-      authorizationId: r.authorizationId,
-      engineVersion: r.result.engineVersion,
-    },
-  });
-
-  await getDb().insert(decisions).values({
-    id: decisionId,
-    agentId: r.input.agentId,
-    orderId: r.orderId,
-    offerId: r.offerId,
-    authorizationId: r.authorizationId,
-    outcome: r.result.outcome,
-    reasons: r.result.reasons,
-    matchedRules: r.result.matchedRules,
-    escalatable: r.result.escalatable,
-    policyVersion: r.result.policyVersion,
-    policySnapshot: r.policySnapshot,
-    authorizationBalanceBeforePaise: r.balanceBeforePaise,
-    latencyMs: r.result.latencyMs,
-    engineVersion: r.result.engineVersion,
-    source: r.input.source,
-    label: r.input.label ?? null,
-  });
-
-  return decisionId;
-}
-
 function refusal(code: ErrorCode, rule: string, details: Record<string, unknown> = {}): AdmissionResult {
   return {
     outcome: "REFUSE",
@@ -130,8 +79,8 @@ export async function pay(input: PayInput): Promise<PayResult> {
   const [agent] = await db.select().from(buyerAgents).where(eq(buyerAgents.id, input.agentId)).limit(1);
   if (!agent) {
     const result = refusal("AGENT_UNKNOWN", "agent.identity");
-    const decisionId = await record({
-      input, result, offerId: null, authorizationId: null, orderId: null,
+    const decisionId = await recordDecision({
+      agentId: input.agentId, source: input.source, label: input.label, result, offerId: null, authorizationId: null, orderId: null,
       balanceBeforePaise: null, policySnapshot: {},
     });
     return { outcome: "REFUSE", decisionId, code: "AGENT_UNKNOWN", reasons: result.reasons, details: {} };
@@ -144,8 +93,8 @@ export async function pay(input: PayInput): Promise<PayResult> {
     const code: ErrorCode = verified.failure === "OFFER_TAMPERED" ? "OFFER_SIGNATURE_INVALID" : verified.failure;
     const result = refusal(code, "offer.verify", verified.details);
     result.latencyMs = Date.now() - started;
-    const decisionId = await record({
-      input, result, offerId: null, authorizationId: null, orderId: null,
+    const decisionId = await recordDecision({
+      agentId: input.agentId, source: input.source, label: input.label, result, offerId: null, authorizationId: null, orderId: null,
       balanceBeforePaise: null, policySnapshot: {},
     });
     await noteMisquote(input, code, null, null);
@@ -201,8 +150,8 @@ export async function pay(input: PayInput): Promise<PayResult> {
   result.latencyMs = Date.now() - started;
 
   if (result.outcome === "REFUSE") {
-    const decisionId = await record({
-      input, result, offerId: offer.row.id, authorizationId: auth?.id ?? null, orderId: null,
+    const decisionId = await recordDecision({
+      agentId: input.agentId, source: input.source, label: input.label, result, offerId: offer.row.id, authorizationId: auth?.id ?? null, orderId: null,
       balanceBeforePaise: bal?.availablePaise ?? null, policySnapshot,
     });
     const reason = result.reasons[0];
@@ -229,8 +178,8 @@ export async function pay(input: PayInput): Promise<PayResult> {
   });
   await db.update(offers).set({ consumedAt: now }).where(eq(offers.id, offer.row.id));
 
-  const decisionId = await record({
-    input, result, offerId: offer.row.id, authorizationId: auth?.id ?? null, orderId,
+  const decisionId = await recordDecision({
+      agentId: input.agentId, source: input.source, label: input.label, result, offerId: offer.row.id, authorizationId: auth?.id ?? null, orderId,
     balanceBeforePaise: bal?.availablePaise ?? null, policySnapshot,
   });
 

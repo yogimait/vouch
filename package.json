@@ -24,7 +24,9 @@
     "demo:1": "tsx --env-file=.env.local scripts/demo1.ts",
     "demo:2": "tsx --env-file=.env.local scripts/demo2.ts",
     "demo:3": "tsx --env-file=.env.local scripts/demo3.ts",
-    "demo:4": "tsx --env-file=.env.local scripts/demo4.ts"
+    "demo:4": "tsx --env-file=.env.local scripts/demo4.ts",
+    "harness": "tsx --env-file=.env.local scripts/harness.ts",
+    "settle": "tsx --env-file=.env.local scripts/settle.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.30",
