@@ -71,6 +71,11 @@ const offerUnused: NamedRule = {
   },
 };
 
+/** Never let a hostile amount reach a formatter that throws. */
+function describe(paise: bigint): string {
+  return paise < 0n ? `${paise} paise` : formatInr(paise);
+}
+
 // The agent may assert what it thinks it is paying. The server charges the signed total regardless,
 // and a mismatch is recorded rather than quietly corrected.
 const claimMatchesOffer: NamedRule = {
@@ -81,7 +86,9 @@ const claimMatchesOffer: NamedRule = {
     return {
       code: "MISQUOTE",
       rule: "offer.claimedTotal",
-      message: `The signed offer totals ${formatInr(offer.totalPaise)}. Your claimed total of ${formatInr(ctx.claimedTotalPaise)} is not honoured. Offers are merchant-signed; agents cannot create discounts.`,
+      // The claim is attacker-controlled, and formatInr rightly refuses negative money by throwing.
+      // A rule that throws lands in the engine's fail-closed catch and reports the wrong cause.
+      message: `The signed offer totals ${formatInr(offer.totalPaise)}. Your claimed total of ${describe(ctx.claimedTotalPaise)} is not honoured. Offers are merchant-signed; agents cannot create discounts.`,
       observed: ctx.claimedTotalPaise.toString(),
       expected: offer.totalPaise.toString(),
     };

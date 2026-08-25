@@ -228,3 +228,26 @@ true: the stale order had to be deleted by hand before the suite was clean again
 Teardown now deletes receipts first. Worth noting because adding a write to a shared code path
 silently made an unrelated test's cleanup wrong — the foreign key caught it, which is the argument
 for having the foreign key.
+
+## 2026-08-25 · A sentinel value made a pure rule throw, and deny-by-default hid the real cause
+
+`payForOffer` mapped an unparseable `claimed_total_paise` to `-1n` so it "would not match" and would
+land as a MISQUOTE. It did not. The rule that reports a mismatch formats the claimed amount, and
+`formatInr` **correctly refuses negative money by throwing**. The throw hit the engine's fail-closed
+catch, so the agent was told `GUARD_UNAVAILABLE` — "the guard could not decide" — when the guard had
+decided perfectly well and the truth was "your claim is nonsense".
+
+The refusal was right. **The stated reason was wrong**, and a wrong reason in a receipt is worse than
+no reason.
+
+Three changes, because one would have left the landmine:
+
+| Layer | Change |
+|---|---|
+| Schema | `claimed_total_paise` is `^\d+$`. Garbage is now `INVALID_REQUEST` at the boundary, where it belongs |
+| Tools | `parseClaimed` returns `bigint \| null \| "UNREADABLE"`. "No claim" and "unreadable claim" are different answers and a magic number cannot express both |
+| Engine | The rule formats a hostile amount through a guard that cannot throw |
+
+**The lesson worth keeping:** fail-closed is a floor, not an alibi. It stopped the money moving, and
+because it stopped the money moving the bug was nearly invisible — the test passed the outcome
+assertion (`REFUSE`) and failed only on the code. Assert the reason, not just the verdict.

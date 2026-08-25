@@ -33,15 +33,34 @@ export function hashApiKey(key: string): string {
 
 export type AgentRow = typeof buyerAgents.$inferSelect;
 
-/** Resolves the caller from the Bearer key. The same key authenticates HTTP and MCP. */
+/** The same key authenticates HTTP and MCP, so lookup lives in one place for both. */
+export async function agentByKey(key: string): Promise<AgentRow | null> {
+  if (!key) return null;
+  const [agent] = await getDb().select().from(buyerAgents)
+    .where(eq(buyerAgents.apiKeyHash, hashApiKey(key))).limit(1);
+  return agent ?? null;
+}
+
 export async function requireAgent(request: Request): Promise<Parsed<AgentRow>> {
   const header = request.headers.get("authorization") ?? "";
   const key = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
   if (!key) return { ok: false, response: fail("AGENT_UNKNOWN", { reason: "missing bearer token" }) };
 
-  const [agent] = await getDb().select().from(buyerAgents).where(eq(buyerAgents.apiKeyHash, hashApiKey(key))).limit(1);
+  const agent = await agentByKey(key);
   if (!agent) return { ok: false, response: fail("AGENT_UNKNOWN") };
   return { ok: true, value: agent };
+}
+
+/** Auth and body in one step, because doing them separately is four lines in every route. */
+export async function agentRequest<S extends ZodType>(
+  request: Request,
+  schema: S,
+): Promise<Parsed<{ caller: AgentRow; body: S["_output"] }>> {
+  const caller = await requireAgent(request);
+  if (!caller.ok) return caller;
+  const body = await parseBody(request, schema);
+  if (!body.ok) return body;
+  return { ok: true, value: { caller: caller.value, body: body.value } };
 }
 
 /** Any throw becomes a valid envelope rather than an HTML error page. */

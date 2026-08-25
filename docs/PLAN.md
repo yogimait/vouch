@@ -10,7 +10,7 @@
 > - [x] **Day 3** — admission engine: 13 ordered rules, ADMIT/ESCALATE/REFUSE, escalatable-on-the-reason, fixtures, trip table, 1000-run determinism, three deny-by-default paths. Moved to `src/`.
 > - [x] **Day 4** — orchestrator: idempotency, audit-before-money, RESERVE under advisory lock, state machine, webhook. Ledger race + double-delivery proved against real Postgres
 > - [x] **Day 5** — receipt: six independently hashed blocks, sign, verify, export bundle, `npm run receipt`. **Demo 5 works.** Plus the authorization device (`npm run device`), so ADMIT now settles for real
-> - [ ] **Day 6** — the four shared functions, MCP stdio server, HTTP routes, device watcher · demo 1
+> - [x] **Day 6** — `@/core/tools` (getCatalog/getQuote/pay/getReceipt), 4 HTTP routes under the envelope, MCP stdio server (4 tools, agent-authenticated), device watcher. **Demo 1 passes end to end.**
 > - [ ] **Day 7** — buyer agent (Groq) · demo 2
 > - [ ] **Day 8** — demos 3 and 4, `failure@razorpay` + RELEASE
 > - [ ] **Day 9** — gate harness (210) and settlement batch (~12), reported separately
