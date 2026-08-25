@@ -51,6 +51,18 @@ export async function requireAgent(request: Request): Promise<Parsed<AgentRow>> 
   return { ok: true, value: agent };
 }
 
+const SOURCES = ["mcp", "http", "llm", "harness"] as const;
+export type RequestSource = (typeof SOURCES)[number];
+
+/**
+ * Labels a decision row for reporting only — it never reaches a rule, so a caller lying about it
+ * changes no outcome. It exists so LLM-driven and harness numbers are never summed by accident.
+ */
+export function sourceFrom(request: Request): RequestSource {
+  const claimed = request.headers.get("x-vouch-source") ?? "";
+  return (SOURCES as readonly string[]).includes(claimed) ? (claimed as RequestSource) : "http";
+}
+
 /** Auth and body in one step, because doing them separately is four lines in every route. */
 export async function agentRequest<S extends ZodType>(
   request: Request,

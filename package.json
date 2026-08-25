@@ -21,7 +21,8 @@
     "receipt": "tsx --env-file=.env.local scripts/receipt.ts",
     "device": "tsx --env-file=.env.local scripts/device.ts",
     "mcp": "tsx --env-file=.env.local src/mcp/server.ts",
-    "demo:1": "tsx --env-file=.env.local scripts/demo1.ts"
+    "demo:1": "tsx --env-file=.env.local scripts/demo1.ts",
+    "demo:2": "tsx --env-file=.env.local scripts/demo2.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.30",
