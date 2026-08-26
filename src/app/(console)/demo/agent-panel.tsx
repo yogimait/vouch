@@ -2,9 +2,8 @@
 
 import { useRef, useState } from "react";
 import type { Misquote } from "@/demo/agent";
+import { Step, type StepEvent } from "../agent/transcript";
 import { Button, Note } from "./panel";
-
-interface StepEvent { index: number; reasoning: string; toolCalls: { name: string; input: unknown }[] }
 
 export function AgentPanel({ instruction }: { instruction: string }) {
   const [running, setRunning] = useState(false);
@@ -42,18 +41,7 @@ export function AgentPanel({ instruction }: { instruction: string }) {
       </div>
 
       {steps.length > 0 && (
-        <ol className="mt-8 space-y-4">
-          {steps.map((s) => (
-            <li key={s.index} className="border-l-2 border-hairline pl-4">
-              {s.reasoning && <p className="text-sm text-fg-2 italic">&ldquo;{s.reasoning}&rdquo;</p>}
-              {s.toolCalls.map((c, i) => (
-                <div key={i} className="mt-2 font-mono text-xs text-accent">
-                  {c.name}({summarise(c.input)})
-                </div>
-              ))}
-            </li>
-          ))}
-        </ol>
+        <ol className="mt-8">{steps.map((s) => <Step key={s.index} step={s} />)}</ol>
       )}
 
       {misquotes.length > 0 && (
@@ -76,12 +64,4 @@ export function AgentPanel({ instruction }: { instruction: string }) {
       )}
     </>
   );
-}
-
-/** Tool inputs carry an 8kb offer token. Printing it whole buries the one field worth reading. */
-function summarise(input: unknown): string {
-  if (!input || typeof input !== "object") return "";
-  return Object.entries(input as Record<string, unknown>)
-    .map(([k, v]) => `${k}: ${String(v).length > 24 ? `${String(v).slice(0, 18)}…` : String(v)}`)
-    .join(", ");
 }

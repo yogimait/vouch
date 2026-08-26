@@ -1,18 +1,15 @@
 import Link from "next/link";
 import { Disc } from "./(marketing)/disc";
+import { Stats } from "./(marketing)/stats";
 
-const STATS = [
-  ["210", "gate decisions evaluated"],
-  ["100%", "policy violations caught"],
-  ["0", "duplicate charges"],
-  ["1.4ms", "median decision latency"],
-];
 
 const CLAIMS = [
   ["Every price is signed", "The agent cannot state an amount. There is no field for it."],
   ["Every decision is deterministic", "Thirteen ordered rules. No model reaches a verdict, a price, or a signature."],
   ["Every order leaves a receipt", "Who delegated the authority, when, with what scope, and whether the agent stayed inside it."],
 ];
+
+export const dynamic = "force-dynamic";
 
 export default function Landing() {
   return (
@@ -42,14 +39,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 border-y border-hairline md:grid-cols-4">
-        {STATS.map(([value, caption], i) => (
-          <div key={caption} className={`px-8 py-12 text-center ${i > 0 ? "md:border-l md:border-hairline" : ""}`}>
-            <div className="font-display text-5xl text-white">{value}</div>
-            <div className="mt-3 font-mono text-xs uppercase tracking-wider text-fg-3">{caption}</div>
-          </div>
-        ))}
-      </section>
+      <Stats />
 
       {CLAIMS.map(([heading, body]) => (
         <section key={heading} className="border-b border-hairline px-8 py-28 text-center">

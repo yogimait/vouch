@@ -103,7 +103,12 @@ export async function seed(): Promise<void> {
 
   console.error("authorization");
   // Rs 9,000 against a Rs 3,500 item: 2 units fit, 3 units (Rs 10,500) do not. That gap is the
-  // squeeze in demo 2 and the headroom breach in demo 4.
+  // squeeze in demo 2.
+  //
+  // The per-order cap sits ABOVE Rs 10,500 on purpose. At Rs 5,000 it fired first and the demo's
+  // own headline number never got used: the agent was refused for the per-order limit and the
+  // Rs 9,000 authorization was never consulted. Now headroom is the binding constraint, which is
+  // what the narration has always claimed.
   const expireAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const grant = {
     authorization_id: AUTH_ID,
@@ -123,7 +128,7 @@ export async function seed(): Promise<void> {
     agentId: SHOPBOT_ID,
     merchantId: MERCHANT_ID,
     maxAmountPaise: toPaise("9000.00"),
-    maxPerOrderPaise: toPaise("5000.00"),
+    maxPerOrderPaise: toPaise("11000.00"),
     maxOrdersPerHour: 10,
     expireAt,
     status: "confirmed",
@@ -140,7 +145,7 @@ export async function seed(): Promise<void> {
     agentId: FROZEN_ID,
     merchantId: MERCHANT_ID,
     maxAmountPaise: toPaise("9000.00"),
-    maxPerOrderPaise: toPaise("5000.00"),
+    maxPerOrderPaise: toPaise("11000.00"),
     maxOrdersPerHour: 10,
     expireAt,
     status: "confirmed",
@@ -163,5 +168,5 @@ export async function seed(): Promise<void> {
   console.error("\nseeded.");
   console.error(`  agent key (active): ${DEMO_KEYS.shopbot}`);
   console.error(`  agent key (frozen): ${DEMO_KEYS.frozen}`);
-  console.error(`  authorization:      ${AUTH_ID}  Rs 9,000 max / Rs 5,000 per order`);
+  console.error(`  authorization:      ${AUTH_ID}  Rs 9,000 max / Rs 11,000 per order`);
 }

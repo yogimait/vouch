@@ -268,3 +268,33 @@ export async function settlementTotals(): Promise<SettlementTotals> {
     releasedPaise: paiseFromSql(row.released),
   };
 }
+
+export interface LandingStats {
+  decisions: number;
+  stopped: number;
+  receipts: number;
+  /** Engine-only, and null when unmeasured. A landing page must not invent a latency. */
+  p50Ms: number | null;
+}
+
+/** The four numbers on the front door, read from the same tables the console reads. */
+export async function landingStats(): Promise<LandingStats> {
+  const [row] = (await getDb().execute(sql`
+    select
+      (select count(*)::text from decisions) as decisions,
+      (select count(*)::text from decisions where outcome <> 'ADMIT') as stopped,
+      (select count(*)::text from receipts) as receipts,
+      -- harness rows only. An 'http' decision times the database round trips that assemble its
+      -- context as well as the engine, and putting that beside a microsecond claim would be the
+      -- same conflation /metrics spends a paragraph warning about.
+      (select percentile_disc(0.5) within group (order by latency_ms)::text
+         from decisions where source = 'harness') as p50
+  `)) as unknown as Record<string, string | null>[];
+
+  return {
+    decisions: Number(row.decisions),
+    stopped: Number(row.stopped),
+    receipts: Number(row.receipts),
+    p50Ms: row.p50 === null ? null : Number(row.p50),
+  };
+}

@@ -4,6 +4,7 @@ import { formatInr } from "@/core/money";
 import { getCatalog } from "@/core/tools";
 import { listAuthorizations, listReceipts } from "@/core/db/queries";
 import { demoAgent } from "@/demo/agents";
+import { mandateFor, type Mandate } from "@/demo/agent";
 import type { Item } from "@/app/(console)/demo/buy-panel";
 import type { Settled } from "@/app/(console)/demo/receipt-panel";
 
@@ -35,4 +36,10 @@ export async function demoConsole(): Promise<ConsoleData> {
     headroom: mine ? formatInr(mine.availablePaise) : "—",
     maxPerOrder: mine ? formatInr(mine.maxPerOrderPaise) : "—",
   };
+}
+
+/** The mandate as it stands before a run, so the page is honest on first paint. */
+export async function openingMandate(): Promise<Mandate | null> {
+  const agent = await demoAgent("shopbot");
+  return mandateFor(agent.id);
 }
