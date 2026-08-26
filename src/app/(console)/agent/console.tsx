@@ -8,7 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { AgentOverview } from "@/core/db/overview/agent";
 import type { Preset } from "@/demo/instructions";
-import { Empty, ScrollPanel } from "../ui";
+import { TextType } from "@/components/ui/text-type";
+import { ScrollPanel } from "../ui";
 import { AgentCards, type RunResult } from "./cards";
 import { ChipGroup } from "./chips";
 import { Step, type StepEvent } from "./transcript";
@@ -113,11 +114,23 @@ export function AgentConsole({ presets, overviews }: { presets: Preset[]; overvi
         </div>
       </div>
 
-      <ScrollPanel title="its reasoning, its tool calls, and the merchant's answers" count={steps.length}>
-        {/* ScrollPanel hides its own overflow for a DataTable that scrolls itself; this is that scroller. */}
-        <div className="px-4 py-4 lg:h-full lg:overflow-y-auto">
+      <ScrollPanel title="its reasoning, its tool calls, and the merchant's answers" count={steps.length} bodyClassName="px-4 py-4">
+        <>
           {steps.length === 0 && !verdict ? (
-            <Empty title="Nothing has run yet." hint="Pick an errand above, or write your own, then press Send it." />
+            <div className="rounded-[3px] border border-dashed border-hairline px-6 py-6 text-center">
+              <p className="text-sm text-fg-2">Nothing has run yet. Pick an errand above, or write your own.</p>
+              {/* The real preset instructions, typed — every one of them is a chip you can press. */}
+              <TextType
+                as="p"
+                text={presets.map((p) => p.instruction)}
+                className="mx-auto mt-3 max-w-[64ch] font-mono text-xs text-primary"
+                typingSpeed={26}
+                deletingSpeed={12}
+                pauseDuration={2600}
+                variableSpeed={{ min: 18, max: 46 }}
+                startOnVisible
+              />
+            </div>
           ) : (
             <ol>{steps.map((s) => <Step key={s.index} step={s} />)}</ol>
           )}
@@ -154,7 +167,7 @@ export function AgentConsole({ presets, overviews }: { presets: Preset[]; overvi
               )}
             </section>
           )}
-        </div>
+        </>
       </ScrollPanel>
     </>
   );

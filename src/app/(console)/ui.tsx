@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { AnimatedList } from "@/components/ui/animated-list";
+import { NoiseTexture } from "@/components/ui/noise-texture";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatInr } from "@/core/money";
@@ -27,14 +29,17 @@ export function PageScroll({ children }: { children: ReactNode }) {
  * The one element on a console page that scrolls. It takes the height the heading and cards leave
  * behind, so the page itself never grows — a dashboard whose summary scrolls away is a report.
  */
-export function ScrollPanel({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
+export function ScrollPanel({ title, count, children, bodyClassName }: { title: string; count?: number; children: ReactNode; bodyClassName?: string }) {
   return (
-    <section className="mt-3 flex flex-1 flex-col rounded-[3px] border border-hairline lg:min-h-0">
+    <section className="relative isolate mt-3 flex flex-1 flex-col overflow-hidden rounded-[3px] border border-hairline lg:min-h-0">
+      {/* Grain on the panel, not the page. -z-10 so a scrolling ledger runs over it, never under. */}
+      <NoiseTexture className="-z-10 opacity-[0.45]" frequency={0.8} slope={0.2} />
       <header className="flex shrink-0 items-baseline justify-between gap-4 border-b border-hairline px-4 py-3.5">
         <span className="label">{title}</span>
         {count !== undefined && <span className="font-mono text-xs tabular-nums text-fg-3">{count}</span>}
       </header>
-      <div className="flex-1 lg:min-h-0 lg:overflow-hidden">{children}</div>
+      {/* The panel is the only scroller on the page, so it is also the only place the fades belong. */}
+      <AnimatedList className={bodyClassName}>{children}</AnimatedList>
     </section>
   );
 }

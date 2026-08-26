@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { listReceipts, type ReceiptRow } from "@/core/db/queries";
 import { receiptsOverview } from "@/core/db/overview/receipts";
 import { DataTable, type Column } from "@/components/data-table";
@@ -11,14 +12,26 @@ export const dynamic = "force-dynamic";
 const COLUMNS: Column<ReceiptRow>[] = [
   { header: "Signed", cell: (r) => <span className="font-mono text-xs">{r.signedAt.toISOString().slice(5, 16).replace("T", " ")}</span> },
   { header: "Receipt", cell: (r) => <Id value={r.id} /> },
-  { header: "Item", cell: (r) => `${r.sku} × ${r.qty}` },
+  {
+    header: "Item",
+    cell: (r) => (
+      <>
+        {r.sku} × {r.qty}
+        <div className="text-xs text-fg-3">{r.itemName ?? "—"}</div>
+      </>
+    ),
+  },
   { header: "Amount", align: "right", cell: (r) => <Money paise={r.amountPaise} /> },
   { header: "Decision", cell: (r) => <Outcome value={r.outcome as OutcomeValue} /> },
   { header: "Payment", cell: (r) => <span className="font-mono text-xs text-fg-3">{r.razorpayPaymentId ?? "—"}</span> },
   {
     header: "",
     align: "right",
-    cell: (r) => <Link href={`/receipts/${r.orderId}`} className="text-xs text-primary hover:underline">open</Link>,
+    cell: (r) => (
+      <Button asChild size="sm" variant="outline" className="h-7 rounded-[2px] px-3 text-xs">
+        <Link href={`/receipts/${r.orderId}`}>Open</Link>
+      </Button>
+    ),
   },
 ];
 

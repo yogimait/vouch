@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { ChevronUp } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import {
   AnimatePresence,
   motion,
@@ -62,7 +62,7 @@ function DockMobile({ items, pathname, className }: DockProps) {
     <div className={cn("relative block md:hidden", className)}>
       <AnimatePresence>
         {open && (
-          <motion.div layoutId="dock-mobile" className="absolute inset-x-0 bottom-full mb-2 flex flex-col gap-2">
+          <motion.div className="glass absolute right-0 bottom-full mb-3 flex w-56 flex-col overflow-hidden rounded-[3px] p-1">
             {items.map((item, idx) => (
               <motion.div
                 key={item.title}
@@ -74,15 +74,17 @@ function DockMobile({ items, pathname, className }: DockProps) {
                 <Link
                   href={item.href}
                   prefetch={false}
-                  aria-label={item.title}
                   aria-current={isActive(pathname, item.href) ? "page" : undefined}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "glass flex size-10 items-center justify-center rounded-full",
-                    isActive(pathname, item.href) && "bg-primary text-primary-foreground",
+                    "feedback flex items-center gap-3 rounded-[2px] px-3 py-2.5 text-sm",
+                    isActive(pathname, item.href)
+                      ? "bg-primary font-medium text-primary-foreground"
+                      : "text-fg-2 hover:bg-white/[0.06] hover:text-fg",
                   )}
                 >
-                  <span className="size-4">{item.icon}</span>
+                  <span className="size-4 shrink-0">{item.icon}</span>
+                  {item.title}
                 </Link>
               </motion.div>
             ))}
@@ -93,10 +95,10 @@ function DockMobile({ items, pathname, className }: DockProps) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-label="Navigation"
-        className="glass flex size-11 items-center justify-center rounded-full text-fg-2"
+        aria-label={open ? "Close navigation" : "Open navigation"}
+        className="glass feedback flex size-12 items-center justify-center rounded-full text-fg-2"
       >
-        <ChevronUp className={cn("size-5 transition-transform", open && "rotate-180")} />
+        {open ? <X className="size-5" /> : <Menu className="size-5" />}
       </button>
     </div>
   );
