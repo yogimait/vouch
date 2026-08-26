@@ -8,73 +8,16 @@
 //
 // What this measures is the gate, and only the gate. Settlement numbers come from `npm run settle`
 // and live in a different table. They are never added together.
+//
+// The classes themselves live in src/demo/classes.ts, because the console runs the same fourteen.
 import { mkdirSync, writeFileSync } from "node:fs";
-import { eq } from "drizzle-orm";
-import { getDb } from "@/core/db";
-import { authorizations, buyerAgents, catalogItems } from "@/core/db/schema";
+import { CLASSES, HARNESS_NOW, baseContext, clone } from "@/demo/classes";
 import { evaluate } from "@/core/engine/engine";
-import type { AdmissionContext, Outcome } from "@/core/engine/types";
+import type { Outcome } from "@/core/engine/types";
 import { recordDecision } from "@/core/decisions";
 import type { ErrorCode } from "@/core/errors";
 
 const PER_CLASS = Number(process.argv[2] ?? 15);
-const NOW = new Date("2026-08-25T12:00:00.000Z");
-
-interface Klass {
-  label: string;
-  expect: Outcome;
-  code: ErrorCode | null;
-  mutate: (ctx: AdmissionContext, n: number) => void;
-}
-
-// One mutation each, applied to a context on which every rule otherwise passes. A test that changes
-// two things at once cannot tell you which one fired.
-const CLASSES: Klass[] = [
-  { label: "clean", expect: "ADMIT", code: null, mutate: () => {} },
-
-  { label: "agent_frozen", expect: "REFUSE", code: "AGENT_FROZEN",
-    mutate: (c) => { c.agent.status = "FROZEN"; } },
-
-  { label: "offer_signature_invalid", expect: "REFUSE", code: "OFFER_SIGNATURE_INVALID",
-    mutate: (c) => { c.offer!.signatureValid = false; } },
-
-  { label: "offer_expired", expect: "REFUSE", code: "OFFER_EXPIRED",
-    mutate: (c, n) => { c.offer!.expiresAt = new Date(c.now.getTime() - (n + 1) * 1000); } },
-
-  { label: "offer_wrong_agent", expect: "REFUSE", code: "OFFER_WRONG_AGENT",
-    mutate: (c, n) => { c.offer!.agentId = `agt_OTHER_${n}`; } },
-
-  { label: "offer_replayed", expect: "REFUSE", code: "OFFER_ALREADY_USED",
-    mutate: (c, n) => { c.offer!.consumedAt = new Date(c.now.getTime() - n * 60_000); } },
-
-  { label: "misquote", expect: "REFUSE", code: "MISQUOTE",
-    mutate: (c, n) => { c.claimedTotalPaise = c.offer!.totalPaise - BigInt((n + 1) * 100); } },
-
-  { label: "authorization_not_confirmed", expect: "REFUSE", code: "AUTHORIZATION_NOT_CONFIRMED",
-    mutate: (c, n) => { c.authorization!.status = n % 2 === 0 ? "initiated" : "rejected"; } },
-
-  { label: "authorization_expired", expect: "REFUSE", code: "AUTHORIZATION_EXPIRED",
-    mutate: (c, n) => { c.authorization!.expireAt = new Date(c.now.getTime() - (n + 1) * 3600_000); } },
-
-  { label: "sku_out_of_scope", expect: "REFUSE", code: "SKU_NOT_AUTHORIZED",
-    mutate: (c) => { c.offer!.category = "furniture"; } },
-
-  { label: "per_order_cap", expect: "ESCALATE", code: "PER_ORDER_LIMIT_EXCEEDED",
-    mutate: (c, n) => { c.offer!.totalPaise = c.authorization!.maxPerOrderPaise + BigInt((n + 1) * 100_00); } },
-
-  { label: "headroom_exceeded", expect: "ESCALATE", code: "AUTHORIZATION_EXCEEDED",
-    mutate: (c, n) => {
-      // Under the per-order cap so the earlier rule cannot claim this one's credit.
-      c.offer!.totalPaise = c.authorization!.maxPerOrderPaise;
-      c.authorization!.debitedPaise = c.authorization!.maxAmountPaise - BigInt(n * 10_00);
-    } },
-
-  { label: "velocity", expect: "REFUSE", code: "VELOCITY_EXCEEDED",
-    mutate: (c, n) => { c.ordersLastHour = c.authorization!.maxOrdersPerHour + n; } },
-
-  { label: "out_of_stock", expect: "REFUSE", code: "OUT_OF_STOCK",
-    mutate: (c, n) => { c.offer!.qty = c.inventory + 1 + n; } },
-];
 
 interface Attempt {
   label: string;
@@ -88,48 +31,6 @@ interface Attempt {
 function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0;
   return sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))];
-}
-
-async function baseContext(): Promise<AdmissionContext> {
-  const db = getDb();
-  const [agent] = await db.select().from(buyerAgents).where(eq(buyerAgents.status, "ACTIVE")).limit(1);
-  const [auth] = await db.select().from(authorizations).where(eq(authorizations.status, "confirmed")).limit(1);
-  const [item] = await db.select().from(catalogItems).where(eq(catalogItems.sku, "SKU-A")).limit(1);
-  if (!agent || !auth || !item) throw new Error("Run `npm run db:seed` first.");
-
-  return {
-    now: NOW,
-    agent: { id: agent.id, status: agent.status },
-    offer: {
-      id: "off_HARNESS", agentId: agent.id, authorizationId: auth.id,
-      sku: item.sku, category: item.category, qty: 1,
-      unitPricePaise: item.listPricePaise, totalPaise: item.listPricePaise,
-      expiresAt: new Date(NOW.getTime() + 120_000), signatureValid: true, consumedAt: null,
-    },
-    authorization: {
-      id: auth.id, status: auth.status,
-      maxAmountPaise: auth.maxAmountPaise, maxPerOrderPaise: auth.maxPerOrderPaise,
-      maxOrdersPerHour: auth.maxOrdersPerHour,
-      allowedCategories: auth.allowedCategories, allowedSkus: auth.allowedSkus,
-      expireAt: auth.expireAt, debitedPaise: 0n, heldPaise: 0n,
-    },
-    claimedTotalPaise: null,
-    ordersLastHour: 0,
-    inventory: item.inventory,
-    policySnapshot: { authorizationId: auth.id },
-    policyVersion: 1,
-  };
-}
-
-// Structured clone would carry the Dates but not the bigints in older runtimes, so the copy is
-// explicit. Every attempt must start from an identical context or the run is not reproducible.
-function clone(base: AdmissionContext): AdmissionContext {
-  return {
-    ...base,
-    agent: { ...base.agent },
-    offer: { ...base.offer! },
-    authorization: { ...base.authorization! },
-  };
 }
 
 async function main(): Promise<void> {
@@ -188,7 +89,7 @@ async function main(): Promise<void> {
 
   mkdirSync("evidence", { recursive: true });
   writeFileSync("evidence/harness.json", JSON.stringify({
-    generatedFrom: NOW.toISOString(), perClass: PER_CLASS, total: attempts.length, correct, attempts,
+    generatedFrom: HARNESS_NOW.toISOString(), perClass: PER_CLASS, total: attempts.length, correct, attempts,
   }, null, 2));
   console.log(`  written to evidence/harness.json`);
 

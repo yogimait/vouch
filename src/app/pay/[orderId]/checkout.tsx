@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 interface Props {
+  orderId: string;
   keyId: string;
   razorpayOrderId: string;
   amountPaise: string;
@@ -14,8 +15,24 @@ interface Props {
 // integration; payment links exist to be sent to a person, and test mode caps them at 30.
 export function Checkout(props: Props) {
   const [status, setStatus] = useState("loading checkout");
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
+    // Razorpay is asked, not this page: a handler running where the payer can reach it is not
+    // evidence that money moved.
+    async function confirm() {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const res = await fetch(`/api/orders/${props.orderId}/confirm`, { method: "POST" });
+        const state = (await res.json()).data?.status ?? "PENDING";
+        if (state !== "PENDING") {
+          setStatus(state === "PAID" ? "paid — receipt issued" : String(state).toLowerCase());
+          setSettled(state === "PAID");
+          return;
+        }
+      }
+      setStatus("still pending — Razorpay has not reported a capture");
+    }
+
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.onerror = () => setStatus("could not load checkout.js");
@@ -30,8 +47,10 @@ export function Checkout(props: Props) {
         currency: "INR",
         name: props.merchantName,
         description: props.description,
-        // The page never decides anything. Settlement is confirmed server-side against Razorpay.
-        handler: () => setStatus("submitted — confirming server-side"),
+        handler: () => {
+          setStatus("submitted — confirming with Razorpay");
+          void confirm();
+        },
         modal: { escape: false, ondismiss: () => setStatus("dismissed") },
       }).open();
     };
@@ -39,5 +58,14 @@ export function Checkout(props: Props) {
     return () => script.remove();
   }, [props]);
 
-  return <p className="text-sm text-fg-3" data-status={status}>{status}</p>;
+  return (
+    <div>
+      <p className="text-sm text-fg-3" data-status={status}>{status}</p>
+      {settled && (
+        <a href={`/receipts/${props.orderId}`} className="mt-3 inline-block text-sm text-accent hover:underline">
+          open the receipt
+        </a>
+      )}
+    </div>
+  );
 }

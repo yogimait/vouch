@@ -16,8 +16,7 @@ import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import { orders } from "@/core/db/schema";
 import { formatInr } from "@/core/money";
-import { getOrderPayments, getPaymentLink } from "@/core/razorpay";
-import { failOrder, settleOrder } from "@/core/orders/settle";
+import { confirmOrder } from "@/core/orders/confirm";
 
 const FORCE_FAILURE = process.argv.includes("--fail");
 
@@ -40,6 +39,21 @@ function checkout(page: Page): Frame {
   const frame = page.frames().find((f) => f.url().includes("/checkout/"));
   if (!frame) throw new Error("no checkout frame");
   return frame;
+}
+
+/**
+ * Waited for, not asserted after a fixed sleep. checkout.js is fetched from Razorpay's CDN into a
+ * cold browser context every run, and a one-shot check at five seconds is the whole of the walk's
+ * intermittent failure — it reported "no checkout frame" for a frame that arrived a second later.
+ */
+async function waitForCheckout(page: Page, ms = 45_000): Promise<Frame> {
+  const until = Date.now() + ms;
+  for (;;) {
+    const frame = page.frames().find((f) => f.url().includes("/checkout/"));
+    if (frame) return frame;
+    if (Date.now() > until) throw new Error("no checkout frame");
+    await page.waitForTimeout(500);
+  }
 }
 
 
@@ -88,6 +102,20 @@ async function advance(frame: Frame): Promise<boolean> {
 }
 
 /**
+ * Searched across every frame, not just the checkout one. Razorpay renders the OTP step in its own
+ * nested frame, so looking only where the card fields were found leaves the walk pressing Continue
+ * against a screen that has already moved on.
+ */
+async function otpField(page: Page) {
+  const selector = 'input[placeholder*="OTP" i], input[name*="otp" i], input[autocomplete="one-time-code"]';
+  for (const frame of page.frames()) {
+    const input = frame.locator(selector).first();
+    if (await input.count().catch(() => 0)) return input;
+  }
+  return null;
+}
+
+/**
  * Adaptive rather than scripted. Checkout renders two different layouts: a payment link page gates
  * on contact details first, while Standard Checkout on our own page shows methods and the card form
  * at once. Filling whatever is present and pressing Continue handles both, and will survive
@@ -95,7 +123,8 @@ async function advance(frame: Frame): Promise<boolean> {
  */
 async function authorize(page: Page, url: string): Promise<void> {
   await page.goto(url, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(5000);
+  await waitForCheckout(page);
+  await page.waitForTimeout(2000);
 
   for (let round = 0; round < 8; round++) {
     const frame = checkout(page);
@@ -108,8 +137,8 @@ async function authorize(page: Page, url: string): Promise<void> {
     }))()`).catch(() => ({ inputs: [], buttons: [] }))) as { inputs: string[]; buttons: string[] };
     console.error(`   [${round}] in: ${seen.inputs.join(",") || "-"} | btn: ${seen.buttons.join(",") || "-"}`);
 
-    const otp = frame.locator('input[placeholder*="OTP" i]').first();
-    if (await otp.count().catch(() => 0)) {
+    const otp = await otpField(page);
+    if (otp) {
       await otp.click();
       await otp.pressSequentially(OTP, { delay: 60 });
       // The submit button carries no accessible name, so Enter is the reliable way to submit.
@@ -131,24 +160,6 @@ async function authorize(page: Page, url: string): Promise<void> {
   }
 
   throw new Error("never reached the OTP screen");
-}
-
-/** Razorpay is the authority on whether it captured, not the browser we just drove. */
-async function confirm(order: { razorpayPaymentLinkId: string | null; razorpayOrderId: string | null }) {
-  let attempted = false;
-  for (let i = 0; i < 10; i++) {
-    // Whichever exists: a link when a human was meant to open one, the order otherwise.
-    const seen = order.razorpayPaymentLinkId
-      ? (await getPaymentLink(order.razorpayPaymentLinkId)).payments?.map((p) => ({ id: p.payment_id, status: p.status })) ?? []
-      : (await getOrderPayments(order.razorpayOrderId!)).map((p) => ({ id: p.id, status: p.status }));
-
-    const captured = seen.find((p) => p.status === "captured");
-    if (captured) return { paid: true, paymentId: captured.id, attempted: true };
-    // A payment that exists but never captured is a failure, not a slow success.
-    if (seen.length > 0) attempted = true;
-    await new Promise((r) => setTimeout(r, 3000));
-  }
-  return { paid: false, paymentId: null, attempted };
 }
 
 async function main(): Promise<void> {
@@ -186,23 +197,16 @@ async function main(): Promise<void> {
     await ctx.tracing.stop({ path: `evidence/device-${order.id}.zip` });
     await ctx.close();
 
-    const { paid, paymentId, attempted } = await confirm(order);
-    if (!paid) {
-      // Only fail the order when a payment was actually attempted and did not capture. A link
-      // nobody opened is still pending, and failing it would release a hold that should stand.
-      if (attempted) {
-        const failed = await failOrder(order.id, "payment attempted but not captured", { source: "polled" });
-        console.error(`   not captured -> FAILED, released ${formatInr(failed.releasedPaise)}`);
-      } else {
-        console.error("   not captured, nothing attempted — leaving it pending");
-      }
-      continue;
-    }
-
     // No webhook reached us here, so the receipt will say mode:"polled". Never claim a signature
     // we did not verify.
-    const settlement = await settleOrder(order.id, paymentId, { source: "polled" });
-    console.error(`   captured ${paymentId} -> ${settlement.changed ? `PAID, receipt ${settlement.receiptId}` : "already settled"}`);
+    const result = await confirmOrder(order.id);
+    if (result.status === "PAID") {
+      console.error(`   captured ${result.paymentId} -> ${result.alreadySettled ? "already settled" : `PAID, receipt ${result.receiptId}`}`);
+    } else if (result.status === "FAILED") {
+      console.error(`   not captured -> FAILED, released ${formatInr(BigInt(result.releasedPaise))}`);
+    } else {
+      console.error("   not captured, nothing attempted — leaving it pending");
+    }
   }
 
   await browser.close();

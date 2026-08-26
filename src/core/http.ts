@@ -42,6 +42,21 @@ export function fail(code: ErrorCode, details?: Record<string, unknown>, message
   return Response.json(body, { status: statusCode });
 }
 
+/**
+ * Server-sent events. The envelope is a JSON contract and a stream is not JSON, so it gets a helper
+ * of its own rather than the one hand-built Response that makes "never build one" untrue.
+ */
+export function eventStream(body: ReadableStream<Uint8Array>): Response {
+  return new Response(body, {
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+      // Nginx and most proxies buffer by default, which turns a live run into one burst at the end.
+      "x-accel-buffering": "no",
+    },
+  });
+}
+
 export function isKnownErrorCode(value: string): value is ErrorCode {
   return value in ERROR_CODES;
 }

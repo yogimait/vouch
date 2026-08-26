@@ -26,6 +26,7 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
         <div className="mt-6 border-t border-hairline pt-4">
           {settled ? <p className="text-sm text-admit">Already paid.</p> : (
             <Checkout
+              orderId={order.id}
               keyId={merchant.razorpayKeyId}
               razorpayOrderId={order.razorpayOrderId}
               amountPaise={order.amountPaise.toString()}

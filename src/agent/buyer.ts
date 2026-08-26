@@ -34,6 +34,8 @@ export async function runBuyer(options: {
   instruction: string;
   model?: string;
   temperature?: number;
+  /** Called as each step finishes, so a console can show the run rather than its result. */
+  onStep?: (step: { index: number; reasoning: string; toolCalls: { name: string; input: unknown }[] }) => void;
 }): Promise<BuyerRun> {
   const narration: Narration = { lastText: "" };
   const client = new MerchantClient({ baseUrl: options.baseUrl, apiKey: options.apiKey, source: "llm" }, narration);
@@ -43,6 +45,7 @@ export async function runBuyer(options: {
   const temperature = options.temperature ?? 0.7;
 
   let orderId: string | null = null;
+  let stepIndex = 0;
 
   const result = await generateText({
     model: groq(modelId),
@@ -53,9 +56,14 @@ export async function runBuyer(options: {
     // reasoningText, not text: this model emits nothing in `text` before a tool call and puts its
     // thinking in reasoning tokens. Reading only `text` recorded an empty string on every
     // misquote row — the one field that was supposed to carry the model's own words.
-    onStepFinish: ({ text, reasoningText }) => {
+    onStepFinish: ({ text, reasoningText, toolCalls }) => {
       const said = (reasoningText ?? "").trim() || text.trim();
       if (said) narration.lastText = said;
+      options.onStep?.({
+        index: stepIndex++,
+        reasoning: said,
+        toolCalls: toolCalls.map((c) => ({ name: c.toolName, input: c.input })),
+      });
     },
     tools: {
       browse_catalog: tool({

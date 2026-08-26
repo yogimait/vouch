@@ -15,7 +15,7 @@
     "keygen": "tsx scripts/keygen.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
-    "db:seed": "tsx --env-file=.env.local src/core/db/seed.ts",
+    "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "db:check": "tsx --env-file=.env.local scripts/db-check.ts",
     "db:status": "tsx --env-file=.env.local scripts/db-status.ts",
     "receipt": "tsx --env-file=.env.local scripts/receipt.ts",

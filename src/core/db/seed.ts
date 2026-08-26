@@ -1,4 +1,7 @@
 // Deterministic seed. Re-running truncates and rebuilds so a demo always starts from the same place.
+//
+// A module, not a script: scripts/seed.ts is the CLI wrapper. Anything that imported this file for
+// DEMO_KEYS alone would otherwise truncate the database on import.
 import { sql } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import {
@@ -16,6 +19,7 @@ const MERCHANT_ID = "mrc_01J000000000000000MERCHANT";
 const SHOPBOT_ID = "agt_01J0000000000000000SHOPBOT";
 const FROZEN_ID = "agt_01J00000000000000000FROZEN";
 const AUTH_ID = "auth_01J00000000000000SHOPBOT";
+const FROZEN_AUTH_ID = "auth_01J000000000000000FROZEN";
 
 export const DEMO_KEYS = {
   shopbot: "vouch_sk_demo_shopbot",
@@ -52,7 +56,7 @@ const CATALOG: SeedItem[] = [
   { sku: "SKU-T", name: "Ring Light", category: "peripherals", rupees: "2400.00", stock: 28 },
 ];
 
-async function main() {
+export async function seed(): Promise<void> {
   const db = getDb();
   const now = new Date("2026-08-24T00:00:00.000Z");
 
@@ -110,7 +114,11 @@ async function main() {
     granted_at: now.toISOString(),
   };
 
-  await db.insert(authorizations).values({
+  // The frozen agent gets a mandate too. Without one it fails at quote with AUTHORIZATION_UNKNOWN,
+  // and the agent.status rule — the first rule in the engine — could only ever be shown in a test.
+  const frozenGrant = { ...grant, authorization_id: FROZEN_AUTH_ID, agent_id: FROZEN_ID, principal: "person:rahul@example.com" };
+
+  await db.insert(authorizations).values([{
     id: AUTH_ID,
     agentId: SHOPBOT_ID,
     merchantId: MERCHANT_ID,
@@ -127,12 +135,29 @@ async function main() {
     grantSignature: sign(null, canonicalBytes(grant), signingKeys().privateKey).toString("base64url"),
     grantedAt: now,
     createdAt: now,
-  });
+  }, {
+    id: FROZEN_AUTH_ID,
+    agentId: FROZEN_ID,
+    merchantId: MERCHANT_ID,
+    maxAmountPaise: toPaise("9000.00"),
+    maxPerOrderPaise: toPaise("5000.00"),
+    maxOrdersPerHour: 10,
+    expireAt,
+    status: "confirmed",
+    allowedCategories: ["peripherals", "accessories", "audio"],
+    allowedSkus: [],
+    grantedBy: "person:rahul@example.com",
+    grantedVia: "seed",
+    grantEvidence: frozenGrant,
+    grantSignature: sign(null, canonicalBytes(frozenGrant), signingKeys().privateKey).toString("base64url"),
+    grantedAt: now,
+    createdAt: now,
+  }]);
 
   await writeAudit({
     eventType: "SEED",
     actor: "seed",
-    payload: { merchant: MERCHANT_ID, agents: 2, catalog: CATALOG.length, authorization: AUTH_ID },
+    payload: { merchant: MERCHANT_ID, agents: 2, catalog: CATALOG.length, authorizations: 2 },
   });
 
   console.error("\nseeded.");
@@ -140,8 +165,3 @@ async function main() {
   console.error(`  agent key (frozen): ${DEMO_KEYS.frozen}`);
   console.error(`  authorization:      ${AUTH_ID}  Rs 9,000 max / Rs 5,000 per order`);
 }
-
-main().then(() => process.exit(0)).catch((error) => {
-  console.error("seed failed:", error);
-  process.exit(1);
-});

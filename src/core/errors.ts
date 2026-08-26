@@ -43,6 +43,7 @@ export const ERROR_CODES = {
   WEBHOOK_SIGNATURE_INVALID: { http: 401, message: "Webhook signature is not valid." },
   GATEWAY_UNAVAILABLE: { http: 502, message: "Payment gateway did not respond." },
   GUARD_UNAVAILABLE: { http: 500, message: "Admission engine could not reach a decision, so the request is refused." },
+  DEMO_DISABLED: { http: 404, message: "The demo console is not enabled on this deployment." },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

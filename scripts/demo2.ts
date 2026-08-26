@@ -45,7 +45,7 @@ interface Attempt {
 
 /** Each attempt starts from the seed, so headroom used by one cannot bias the next. */
 function reseed(): void {
-  execFileSync("npx", ["tsx", "--env-file=.env.local", "src/core/db/seed.ts"], {
+  execFileSync("npx", ["tsx", "--env-file=.env.local", "scripts/seed.ts"], {
     stdio: "ignore", shell: process.platform === "win32",
   });
 }
