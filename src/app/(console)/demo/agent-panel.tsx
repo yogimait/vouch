@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import type { Misquote } from "@/demo/agent";
 import { Step, type StepEvent } from "../agent/transcript";
-import { Button, Note } from "./panel";
+import { RunButton, Note } from "./panel";
 
 export function AgentPanel({ instruction }: { instruction: string }) {
   const [running, setRunning] = useState(false);
@@ -37,7 +37,7 @@ export function AgentPanel({ instruction }: { instruction: string }) {
       </Note>
 
       <div className="mt-6">
-        <Button onClick={run} busy={running}>Run the agent</Button>
+        <RunButton onClick={run} busy={running}>Run the agent</RunButton>
       </div>
 
       {steps.length > 0 && (

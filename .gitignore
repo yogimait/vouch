@@ -50,3 +50,9 @@ mcpreq.jsonl
 
 # Working notes stay local: the plan and the failure log are for the submission form, not the repo.
 docs/
+
+# Design mockups served for local review only.
+public/design/
+
+# Throwaway viewport-measurement harness, run from the repo so playwright resolves.
+measure.tmp.mjs

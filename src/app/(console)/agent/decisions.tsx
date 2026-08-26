@@ -14,7 +14,7 @@ export function Decisions({ rows }: { rows: DecisionSummary[] }) {
       {rows.map((d, i) => (
         <div key={i} className="border-t border-hairline py-3 first:border-t-0 first:pt-0">
           <div className="flex flex-wrap items-baseline gap-3">
-            <span className={`font-display text-lg ${TONE[d.outcome as keyof typeof TONE]}`}>{d.outcome}</span>
+            <span className={`font-mono text-sm tracking-wide ${TONE[d.outcome as keyof typeof TONE]}`}>{d.outcome}</span>
             {d.code && <span className="font-mono text-xs">{d.code}</span>}
             {d.rule && <span className="font-mono text-xs text-fg-3">{d.rule}</span>}
             <span className="ml-auto font-mono text-xs text-fg-3">{d.latencyMs === 0 ? "<1ms" : `${d.latencyMs}ms`}</span>

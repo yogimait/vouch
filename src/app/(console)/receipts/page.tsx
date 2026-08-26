@@ -1,11 +1,29 @@
 import Link from "next/link";
-import { listReceipts } from "@/core/db/queries";
-import { Empty, Id, Money, Outcome, PageHeading } from "../ui";
+import { listReceipts, type ReceiptRow } from "@/core/db/queries";
+import { receiptsOverview } from "@/core/db/overview/receipts";
+import { DataTable, type Column } from "@/components/data-table";
+import { ReceiptCards } from "./cards";
+import { Empty, Id, Money, Outcome, PageHeading, ScrollPanel, type OutcomeValue } from "../ui";
 
+// Reads live data on every request. Without this Next prerenders it and bakes the seed in.
 export const dynamic = "force-dynamic";
 
+const COLUMNS: Column<ReceiptRow>[] = [
+  { header: "Signed", cell: (r) => <span className="font-mono text-xs">{r.signedAt.toISOString().slice(5, 16).replace("T", " ")}</span> },
+  { header: "Receipt", cell: (r) => <Id value={r.id} /> },
+  { header: "Item", cell: (r) => `${r.sku} × ${r.qty}` },
+  { header: "Amount", align: "right", cell: (r) => <Money paise={r.amountPaise} /> },
+  { header: "Decision", cell: (r) => <Outcome value={r.outcome as OutcomeValue} /> },
+  { header: "Payment", cell: (r) => <span className="font-mono text-xs text-fg-3">{r.razorpayPaymentId ?? "—"}</span> },
+  {
+    header: "",
+    align: "right",
+    cell: (r) => <Link href={`/receipts/${r.orderId}`} className="text-xs text-primary hover:underline">open</Link>,
+  },
+];
+
 export default async function ReceiptsPage() {
-  const rows = await listReceipts();
+  const [rows, overview] = await Promise.all([listReceipts(200), receiptsOverview()]);
 
   return (
     <>
@@ -13,35 +31,17 @@ export default async function ReceiptsPage() {
         title="Receipts"
         subtitle="One per settled order. Signed, block-hashed, and verifiable by anyone holding the file."
       />
+      <ReceiptCards overview={overview} />
 
-      {rows.length === 0 ? (
-        <Empty title="No receipts yet." hint="A receipt is issued the moment an order settles. Run: npm run demo:1" />
-      ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-hairline text-left">
-              {["Signed", "Receipt", "Item", "Amount", "Decision", "Payment", ""].map((h) => (
-                <th key={h} className="label py-3 font-normal">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-hairline">
-                <td className="py-3 font-mono text-xs">{r.signedAt.toISOString().slice(5, 16).replace("T", " ")}</td>
-                <td className="py-3"><Id value={r.id} /></td>
-                <td className="py-3">{r.sku} × {r.qty}</td>
-                <td className="py-3 text-right"><Money paise={r.amountPaise} /></td>
-                <td className="py-3"><Outcome value={r.outcome as "ADMIT"} /></td>
-                <td className="py-3 font-mono text-xs text-fg-3">{r.razorpayPaymentId ?? "—"}</td>
-                <td className="py-3 text-right">
-                  <Link href={`/receipts/${r.orderId}`} className="text-xs text-accent hover:underline">open</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <ScrollPanel title="One receipt per settled order, newest first" count={overview.receipts}>
+        <DataTable
+          fill
+          columns={COLUMNS}
+          rows={rows}
+          rowKey={(r) => r.id}
+          empty={<Empty title="No receipts yet." hint="A receipt is issued the moment an order settles. Run: npm run demo:1" />}
+        />
+      </ScrollPanel>
     </>
   );
 }

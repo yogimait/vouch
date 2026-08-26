@@ -66,22 +66,31 @@ export type LoadResult =
   | { ok: true; bundle: Bundle; verification: Verification }
   | { ok: false; code: "RECEIPT_UNKNOWN" };
 
-/** The public key travels with the bundle so verification needs nothing from us but the file. */
-export async function exportBundle(orderId: string): Promise<LoadResult> {
-  const [row] = await getDb().select().from(receipts).where(eq(receipts.orderId, orderId)).limit(1);
-  if (!row) return { ok: false, code: "RECEIPT_UNKNOWN" };
+type Row = typeof receipts.$inferSelect;
 
+async function loadRow(orderId: string): Promise<Row | undefined> {
+  const [row] = await getDb().select().from(receipts).where(eq(receipts.orderId, orderId)).limit(1);
+  return row;
+}
+
+/** The public key travels with the bundle so verification needs nothing from us but the file. */
+function bundleOf(row: Row): Extract<LoadResult, { ok: true }> {
   const publicKey = process.env.VOUCH_SIGNING_PUBLIC_KEY ?? "";
   const bundle: Bundle = { receipt: row.body, signature: row.signature, key_id: row.keyId, public_key: publicKey };
   return { ok: true, bundle, verification: verifyBundle(bundle) };
 }
 
-/** The full check, including walking the audit range the receipt commits to. */
-export async function verifyStored(orderId: string): Promise<LoadResult> {
-  const loaded = await exportBundle(orderId);
-  if (!loaded.ok) return loaded;
+export async function exportBundle(orderId: string): Promise<LoadResult> {
+  const row = await loadRow(orderId);
+  return row ? bundleOf(row) : { ok: false, code: "RECEIPT_UNKNOWN" };
+}
 
-  const [row] = await getDb().select().from(receipts).where(eq(receipts.orderId, orderId)).limit(1);
+/** The full check, including walking the audit range the receipt commits to. One row read, not two. */
+export async function verifyStored(orderId: string): Promise<LoadResult> {
+  const row = await loadRow(orderId);
+  if (!row) return { ok: false, code: "RECEIPT_UNKNOWN" };
+
+  const loaded = bundleOf(row);
   if (row.chainSeqFrom !== null && row.chainSeqTo !== null) {
     const chain = await verifyChain(row.chainSeqFrom, row.chainSeqTo);
     loaded.verification.chain = { valid: chain.valid, rowsChecked: chain.rowsChecked, brokenAt: chain.brokenAt };

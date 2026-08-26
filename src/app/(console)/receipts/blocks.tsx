@@ -19,11 +19,11 @@ interface Props {
 
 export function Blocks({ blocks, hashes, tampered }: Props) {
   return (
-    <div className="mt-8 space-y-2">
+    <div className="mt-3 space-y-2">
       {BLOCK_NAMES.map((name) => {
         const broken = tampered.includes(name);
         return (
-          <details key={name} className="glass rounded-lg px-5 py-4">
+          <details key={name} className="rounded-[3px] border border-hairline px-5 py-4">
             <summary className="flex cursor-pointer items-baseline justify-between gap-4">
               <span>
                 <span className={`font-mono text-sm ${broken ? "text-refuse" : "text-fg"}`}>{name}</span>

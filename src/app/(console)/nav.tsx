@@ -1,42 +1,22 @@
-"use client";
+import { Bot, ChartColumn, FlaskConical, Gavel, KeyRound, ReceiptText, ShieldCheck, TriangleAlert } from "lucide-react";
+import { FloatingDock, type DockItem } from "@/components/ui/floating-dock";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-
-const ITEMS = [
-  ["/agent", "Agent"],
-  ["/demo", "Demo"],
-  ["/decisions", "Decisions"],
-  ["/authorizations", "Authorizations"],
-  ["/receipts", "Receipts"],
-  ["/misquotes", "Misquotes"],
-  ["/metrics", "Metrics"],
-] as const;
+// Order is the story: an agent acts, the gate decides, the mandate is drawn down, evidence is filed.
+const ITEMS: DockItem[] = [
+  { title: "Vouch", href: "/", icon: <ShieldCheck className="size-full" /> },
+  { title: "Agent", href: "/agent", icon: <Bot className="size-full" /> },
+  { title: "Demo", href: "/demo", icon: <FlaskConical className="size-full" /> },
+  { title: "Decisions", href: "/decisions", icon: <Gavel className="size-full" /> },
+  { title: "Authorizations", href: "/authorizations", icon: <KeyRound className="size-full" /> },
+  { title: "Receipts", href: "/receipts", icon: <ReceiptText className="size-full" /> },
+  { title: "Misquotes", href: "/misquotes", icon: <TriangleAlert className="size-full" /> },
+  { title: "Metrics", href: "/metrics", icon: <ChartColumn className="size-full" /> },
+];
 
 export function Nav() {
-  const pathname = usePathname();
-
   return (
-    <nav className="fixed inset-x-0 bottom-8 z-30 flex justify-center">
-      <div className="glass flex items-center gap-1 rounded-full px-3 py-2">
-        <Link href="/" className="px-3 font-display text-base tracking-wide">Vouch</Link>
-        <span className="mx-1 h-6 w-px bg-white/10" />
-        {ITEMS.map(([href, label]) => {
-          const active = pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={`rounded-full px-4 py-2 text-sm transition-colors ${
-                active ? "bg-accent font-medium text-black" : "text-fg-3 hover:text-fg"
-              }`}
-            >
-              {label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <div className="fixed inset-x-0 bottom-6 z-30 flex justify-center max-md:right-6 max-md:left-auto">
+      <FloatingDock items={ITEMS} />
+    </div>
   );
 }
