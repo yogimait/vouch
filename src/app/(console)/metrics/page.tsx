@@ -1,4 +1,5 @@
 import { gateBreakdown, settlementTotals } from "@/core/db/queries";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GateTable } from "./gate";
 import { PageHeading, StatTile } from "../ui";
 import { formatInr } from "@/core/money";
@@ -18,21 +19,25 @@ export default async function MetricsPage() {
 
       <section className="mb-14">
         <h2 className="label mb-1">The gate · decisions</h2>
-        <p className="mb-5 text-xs text-fg-3">
-          What the engine decided. Grouped by where the request came from, because a scripted
-          violation and a model&rsquo;s attempt are not the same evidence.
-        </p>
-        <p className="mb-5 text-xs text-fg-3">
-          The two p50s measure different things and are not comparable: <span className="font-mono">harness</span> times
-          the engine alone, <span className="font-mono">http</span> times a full admission including the database reads
+        <p className="mb-5 max-w-[60rem] text-xs text-fg-3">
+          What the engine decided, in tabs by source, because a scripted violation and a
+          model&rsquo;s attempt are not the same evidence. The two p50s measure different things and
+          are not comparable: <span className="font-mono">harness</span> times the engine alone,{" "}
+          <span className="font-mono">http</span> times a full admission including the database reads
           that assemble its context.
         </p>
-        {sources.map((source) => (
-          <div key={source} className="mb-8">
-            <div className="label mb-2 text-accent">{source}</div>
-            <GateTable rows={gate} source={source} />
-          </div>
-        ))}
+        {sources.length > 0 && (
+          <Tabs defaultValue={sources[0]}>
+            <TabsList>
+              {sources.map((s) => <TabsTrigger key={s} value={s} className="font-mono text-xs">{s}</TabsTrigger>)}
+            </TabsList>
+            {sources.map((s) => (
+              <TabsContent key={s} value={s} className="mt-4">
+                <GateTable rows={gate} source={s} />
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
       </section>
 
       <section>

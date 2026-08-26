@@ -105,10 +105,18 @@ export function Disc() {
       }
     };
 
+    // 2600 particles at 60fps is not free. A backgrounded tab should not be paying for it.
+    const visibility = () => {
+      cancelAnimationFrame(raf);
+      if (!document.hidden && !still) draw();
+    };
+    document.addEventListener("visibilitychange", visibility);
+
     draw();
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
 

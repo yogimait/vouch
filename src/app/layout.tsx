@@ -12,11 +12,12 @@ export const metadata: Metadata = {
   description: "The merchant-side layer that lets AI buyers pay, and proves they were inside their authority.",
 };
 
+// `dark` is fixed, not toggled: the palette in globals.css has no light half to switch to.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrains.variable} ${newsreader.variable} ${shareTech.variable}`}
+      className={`dark ${inter.variable} ${jetbrains.variable} ${newsreader.variable} ${shareTech.variable}`}
     >
       <body className="min-h-dvh">{children}</body>
     </html>

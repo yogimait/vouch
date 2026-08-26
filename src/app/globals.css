@@ -1,40 +1,122 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Black and teal. Tokens live here because Tailwind v4 is CSS-configured — there is no config file. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * One palette, two vocabularies. shadcn's semantic names (--background, --primary, --border) are
+ * the source of truth so every generated component inherits the console's black-and-teal without
+ * being edited; the --color-* aliases below keep the domain names (admit / escalate / refuse) that
+ * the pages already read as meaning. Dark only — there is no light mode to switch to.
+ */
+:root {
+  --background: #08080a;
+  --foreground: #ededef;
+  --card: #121214;
+  --card-foreground: #ededef;
+  --popover: #17171a;
+  --popover-foreground: #ededef;
+
+  /* The brand teal. ADMIT is the positive outcome, so in an admission console it is the primary. */
+  --primary: #2dd4bf;
+  --primary-foreground: #08080a;
+
+  --secondary: #17171a;
+  --secondary-foreground: #ededef;
+  --muted: #17171a;
+  --muted-foreground: #8a8a94;
+
+  /* shadcn's hover surface, not the brand. Keeping these apart is why the rename to primary happened. */
+  --accent: #1e1e23;
+  --accent-foreground: #ededef;
+
+  --destructive: #f0526d;
+  --border: #232328;
+  --input: #232328;
+  --ring: #2dd4bf;
+
+  --chart-1: #2dd4bf;
+  --chart-2: #f5a524;
+  --chart-3: #f0526d;
+  --chart-4: #8a8a94;
+  --chart-5: #5eead4;
+
+  --radius: 0.625rem;
+
+  /* The three verdicts. Declared here, not only in @theme inline, because inline theme values are
+     compiled into utilities and never emitted — an inline style reading var(--admit) got nothing. */
+  --admit: #2dd4bf;
+  --escalate: #f5a524;
+  --refuse: #f0526d;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
 @theme inline {
-  --color-bg: #08080a;
-  --color-surface: #121214;
-  --color-raised: #17171a;
-  --color-hairline: #232328;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
-  --color-fg: #ededef;
-  --color-fg-2: #8a8a94;
+  /* Domain aliases. Same hexes, names the pages can be read out loud with. */
+  --color-bg: var(--background);
+  --color-surface: var(--card);
+  --color-raised: var(--popover);
+  --color-hairline: var(--border);
+  --color-fg: var(--foreground);
+  --color-fg-2: var(--muted-foreground);
   --color-fg-3: #5a5a63;
-
-  --color-accent: #2dd4bf;
-  --color-accent-bright: #5eead4;
-  --color-accent-dim: #14b8a6;
-
-  /* ADMIT is the accent: in an admission console the positive outcome is the brand colour. */
-  --color-admit: #2dd4bf;
-  --color-escalate: #f5a524;
-  --color-refuse: #f0526d;
+  --color-admit: var(--admit);
+  --color-escalate: var(--escalate);
+  --color-refuse: var(--refuse);
 
   --font-display: var(--font-share-tech), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-heading: var(--font-share-tech), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
 }
 
-html {
-  color-scheme: dark;
-}
-
-body {
-  background: var(--color-bg);
-  color: var(--color-fg);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
 /* Elevated surfaces only. Never behind table data — blur under 11px mono destroys legibility. */
@@ -58,4 +140,30 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-fg-3);
+}
+
+/*
+ * Page changes. A template.tsx remounts on every navigation, so this replays each time: the new
+ * page fades up rather than being swapped in on the same frame, which is what read as a hard cut.
+ * Suppressed under prefers-reduced-motion by tw-animate-css itself.
+ */
+@utility page-enter {
+  animation: page-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
 }

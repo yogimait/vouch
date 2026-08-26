@@ -16,7 +16,7 @@ export function Step({ step }: { step: StepEvent }) {
       )}
       {step.toolCalls.map((call, i) => (
         <div key={i} className="mt-3">
-          <div className="font-mono text-xs text-accent">
+          <div className="font-mono text-xs text-primary">
             {call.name}({args(call.input)})
           </div>
           <Answer result={step.toolResults[i]} />

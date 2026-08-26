@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Disc } from "./(marketing)/disc";
-import { Stats } from "./(marketing)/stats";
-
+import { Stats, StatsSkeleton } from "./(marketing)/stats";
 
 const CLAIMS = [
   ["Every price is signed", "The agent cannot state an amount. There is no field for it."],
@@ -9,6 +10,7 @@ const CLAIMS = [
   ["Every order leaves a receipt", "Who delegated the authority, when, with what scope, and whether the agent stayed inside it."],
 ];
 
+// The shell has no awaits, so it streams at once and only the stats block waits on Postgres.
 export const dynamic = "force-dynamic";
 
 export default function Landing() {
@@ -16,9 +18,7 @@ export default function Landing() {
     <main className="bg-black">
       <header className="fixed inset-x-0 top-0 z-20 flex items-center justify-between px-8 py-5">
         <span className="font-display text-lg tracking-wide">Vouch</span>
-        <Link href="/decisions" className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black hover:bg-accent-bright">
-          Open the console
-        </Link>
+        <Button asChild size="sm"><Link href="/agent">Open the console</Link></Button>
       </header>
 
       <section className="relative isolate flex min-h-dvh flex-col items-center overflow-hidden pt-32">
@@ -30,16 +30,20 @@ export default function Landing() {
           The merchant-side layer that lets AI buyers pay, and proves afterwards that they were
           inside their authority.
         </p>
-        <Link href="/decisions" className="mt-9 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-black hover:bg-accent-bright">
-          Read the architecture
-        </Link>
+        <div className="mt-9 flex gap-3">
+          <Button asChild size="lg"><Link href="/agent">Watch an agent try</Link></Button>
+          <Button asChild size="lg" variant="outline"><Link href="/decisions">Read the decisions</Link></Button>
+        </div>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[62vh]">
           <Disc />
         </div>
       </section>
 
-      <Stats />
+      {/* Streams behind the hero: the fold must not wait on a database round trip. */}
+      <Suspense fallback={<StatsSkeleton />}>
+        <Stats />
+      </Suspense>
 
       {CLAIMS.map(([heading, body]) => (
         <section key={heading} className="border-b border-hairline px-8 py-28 text-center">

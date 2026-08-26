@@ -62,7 +62,7 @@ export function Checkout(props: Props) {
     <div>
       <p className="text-sm text-fg-3" data-status={status}>{status}</p>
       {settled && (
-        <a href={`/receipts/${props.orderId}`} className="mt-3 inline-block text-sm text-accent hover:underline">
+        <a href={`/receipts/${props.orderId}`} className="mt-3 inline-block text-sm text-primary hover:underline">
           open the receipt
         </a>
       )}

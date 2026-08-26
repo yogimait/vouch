@@ -1,3 +1,4 @@
+import { Card } from "@/components/ui/card";
 import { formatInr } from "@/core/money";
 
 interface Props { maxPaise: bigint; debitedPaise: bigint; heldPaise: bigint; availablePaise: bigint }
@@ -13,17 +14,21 @@ export function CapacityBar({ maxPaise, debitedPaise, heldPaise, availablePaise 
   const held = pct(heldPaise, maxPaise);
 
   return (
-    <section className="glass rounded-lg p-6">
+    <Card className="glass gap-0 p-6">
       <div className="mb-3 flex items-baseline justify-between">
         <span className="label">Authorized capacity</span>
         <span className="label">of {formatInr(maxPaise)}</span>
       </div>
 
       <div className="flex h-14 w-full overflow-hidden rounded border border-hairline">
-        <div className="bg-accent" style={{ width: `${debited}%` }} title={`Debited ${formatInr(debitedPaise)}`} />
+        <div
+          className="bg-primary transition-[width] duration-500 ease-out"
+          style={{ width: `${debited}%` }}
+          title={`Debited ${formatInr(debitedPaise)}`}
+        />
         {/* Zero-width held would vanish, so it keeps a 2px tick to stay legible. */}
         <div
-          className="bg-accent/35"
+          className="bg-primary/35 transition-[width] duration-500 ease-out"
           style={{ width: held > 0 ? `${held}%` : "2px" }}
           title={`Held ${formatInr(heldPaise)}`}
         />
@@ -33,8 +38,8 @@ export function CapacityBar({ maxPaise, debitedPaise, heldPaise, availablePaise 
 
       <div className="mt-4 grid grid-cols-3 gap-4">
         {([
-          ["debited", debitedPaise, "text-accent"],
-          ["held", heldPaise, "text-accent/60"],
+          ["debited", debitedPaise, "text-primary"],
+          ["held", heldPaise, "text-primary/60"],
           ["available", availablePaise, "text-fg"],
         ] as const).map(([label, value, tone]) => (
           <div key={label}>
@@ -43,6 +48,6 @@ export function CapacityBar({ maxPaise, debitedPaise, heldPaise, availablePaise 
           </div>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }

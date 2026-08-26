@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { TamperResult } from "@/demo/tamper";
 import { TAMPER_TARGETS } from "@/demo/targets";
-import { Button, Note } from "./panel";
+import { RunButton, Note } from "./panel";
 
 export interface Settled { orderId: string; label: string }
 
@@ -61,8 +61,8 @@ export function ReceiptPanel({ settled }: { settled: Settled[] }) {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-4">
-        <Button onClick={run} busy={busy} tone="danger">Alter one field and re-verify</Button>
-        {orderId && <Link href={`/receipts/${orderId}`} className="text-sm text-accent hover:underline">see the intact receipt</Link>}
+        <RunButton onClick={run} busy={busy} tone="danger">Alter one field and re-verify</RunButton>
+        {orderId && <Link href={`/receipts/${orderId}`} className="text-sm text-primary hover:underline">see the intact receipt</Link>}
       </div>
 
       {error && <p className="mt-4 text-sm text-refuse">{error}</p>}

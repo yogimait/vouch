@@ -11,7 +11,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ orderI
   const loaded = await verifyStored(orderId);
 
   if (!loaded.ok) {
-    return <><PageHeading title="Receipt" subtitle="No receipt exists for that order." /><Link href="/receipts" className="text-sm text-accent">back</Link></>;
+    return <><PageHeading title="Receipt" subtitle="No receipt exists for that order." /><Link href="/receipts" className="text-sm text-primary">back</Link></>;
   }
 
   const body = JSON.parse(loaded.bundle.receipt);

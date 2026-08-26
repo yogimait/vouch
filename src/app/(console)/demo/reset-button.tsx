@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "./panel";
+import { RunButton } from "./panel";
 
 /** Destructive: it truncates and reseeds. Confirmed once, because a demo is re-run a lot. */
 export function ResetButton() {
@@ -17,5 +17,5 @@ export function ResetButton() {
     setBusy(false);
   }
 
-  return <Button onClick={reset} busy={busy} tone="quiet">Reset to the seed</Button>;
+  return <RunButton onClick={reset} busy={busy} tone="quiet">Reset to the seed</RunButton>;
 }

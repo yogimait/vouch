@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatInr } from "@/core/money";
+import { cn } from "@/lib/utils";
 
-const OUTCOME = {
-  ADMIT: "text-admit",
-  ESCALATE: "text-escalate",
-  REFUSE: "text-refuse",
-} as const;
+export type OutcomeValue = "ADMIT" | "ESCALATE" | "REFUSE";
+
+const VARIANT = { ADMIT: "admit", ESCALATE: "escalate", REFUSE: "refuse" } as const;
 
 export function PageHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -16,21 +17,26 @@ export function PageHeading({ title, subtitle }: { title: string; subtitle?: str
   );
 }
 
-export function StatTile({ label, value, accent }: { label: string; value: string; accent?: keyof typeof OUTCOME }) {
+export function StatTile({ label, value, accent }: { label: string; value: string; accent?: OutcomeValue }) {
   return (
-    <div className="glass rounded-lg px-6 py-5" style={accent ? { borderTopWidth: 2, borderTopColor: `var(--color-${accent.toLowerCase()})` } : undefined}>
-      <div className="label">{label}</div>
-      <div className="mt-2 font-display text-3xl">{value}</div>
-    </div>
+    <Card
+      className="glass gap-0 py-5"
+      style={accent ? { borderTopWidth: 2, borderTopColor: `var(--${accent.toLowerCase()})` } : undefined}
+    >
+      <CardContent className="px-6">
+        <div className="label">{label}</div>
+        <div className="mt-2 font-display text-3xl">{value}</div>
+      </CardContent>
+    </Card>
   );
 }
 
-export function Outcome({ value }: { value: keyof typeof OUTCOME }) {
+export function Outcome({ value }: { value: OutcomeValue }) {
   return (
-    <span className={`inline-flex items-center gap-2 text-xs font-medium tracking-wide ${OUTCOME[value]}`}>
-      <span className="size-2 rounded-full bg-current" />
+    <Badge variant={VARIANT[value]} className="gap-1.5 font-medium tracking-wide">
+      <span className="size-1.5 rounded-full bg-current" />
       {value}
-    </span>
+    </Badge>
   );
 }
 
@@ -62,6 +68,12 @@ export function Empty({ title, hint }: { title: string; hint: string }) {
   );
 }
 
+/** Latency rounds to zero on a pure-engine decision. That is sub-millisecond, not missing. */
+export function latency(ms: number | null): string {
+  if (ms === null) return "—";
+  return ms === 0 ? "<1ms" : `${ms}ms`;
+}
+
 /** Reason values carry paise as strings. A count (catalog.inventory) is left alone. */
 export function asMoney(value: string | string[] | undefined): string {
   if (typeof value !== "string" || !/^\d+$/.test(value)) return String(value ?? "—");
@@ -78,8 +90,8 @@ interface VerdictProps {
 /** States the verdict and what produced it, because "valid" alone is not evidence of anything. */
 export function Verdict({ valid, signatureValid, tampered, chain }: VerdictProps) {
   return (
-    <section className={`glass rounded-lg border p-6 ${valid ? "border-admit/30" : "border-refuse/40"}`}>
-      <div className={`font-display text-2xl ${valid ? "text-admit" : "text-refuse"}`}>
+    <Card className={cn("glass gap-0 p-6", valid ? "border-admit/30" : "border-refuse/40")}>
+      <div className={cn("font-display text-2xl", valid ? "text-admit" : "text-refuse")}>
         {valid ? "Verified" : "Does not verify"}
       </div>
       <div className="mt-4 grid gap-x-12 gap-y-1 sm:grid-cols-3">
@@ -89,6 +101,6 @@ export function Verdict({ valid, signatureValid, tampered, chain }: VerdictProps
           {chain ? (chain.valid ? `intact across ${chain.rowsChecked} rows in range` : `BROKEN at ${chain.brokenAt}`) : "not anchored"}
         </Field>
       </div>
-    </section>
+    </Card>
   );
 }

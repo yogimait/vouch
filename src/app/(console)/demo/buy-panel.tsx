@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { BuyResult } from "@/demo/buy";
-import { Button, Note, Step } from "./panel";
+import { RunButton, Note, Step } from "./panel";
 
 export interface Item { sku: string; name: string; category: string; price: string }
 
@@ -100,7 +100,7 @@ export function BuyPanel({ items }: { items: Item[] }) {
       </div>
 
       <div className="mt-6 flex items-center gap-4">
-        <Button onClick={run} busy={busy}>Try to buy</Button>
+        <RunButton onClick={run} busy={busy}>Try to buy</RunButton>
         {item && <span className="text-sm text-fg-3">list price {item.price} each</span>}
       </div>
 
@@ -129,11 +129,11 @@ export function BuyPanel({ items }: { items: Item[] }) {
             <div className="mt-6 flex flex-wrap items-center gap-4">
               <a
                 href={result.payUrl} target="_blank" rel="noreferrer"
-                className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-black hover:bg-accent-bright"
+                className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-black hover:bg-primary/85"
               >
                 {result.outcome === "ESCALATE" ? "Open the link a human would get" : "Authorize this payment"}
               </a>
-              <Button tone="quiet" busy={busy} onClick={() => confirm(result.orderId!)}>I have paid — check with Razorpay</Button>
+              <RunButton tone="quiet" busy={busy} onClick={() => confirm(result.orderId!)}>I have paid — check with Razorpay</RunButton>
             </div>
           )}
 
@@ -142,7 +142,7 @@ export function BuyPanel({ items }: { items: Item[] }) {
               <span className={confirmed.status === "PAID" ? "text-admit" : "text-fg-2"}>{confirmed.status}</span>
               {confirmed.paymentId && <span className="ml-3 font-mono text-xs text-fg-3">{confirmed.paymentId}</span>}
               {confirmed.status === "PAID" && result.orderId && (
-                <Link href={`/receipts/${result.orderId}`} className="ml-3 text-xs text-accent hover:underline">open the receipt</Link>
+                <Link href={`/receipts/${result.orderId}`} className="ml-3 text-xs text-primary hover:underline">open the receipt</Link>
               )}
             </div>
           )}

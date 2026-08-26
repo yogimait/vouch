@@ -1,6 +1,6 @@
 import { Nav } from "./nav";
 
-// 120px of bottom padding so content always clears the floating nav.
+// 128px of bottom padding so content always clears the floating dock.
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="atmosphere min-h-dvh">
