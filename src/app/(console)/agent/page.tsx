@@ -1,10 +1,13 @@
 import { PageHeading } from "../ui";
 import { AgentConsole } from "./console";
 import { PRESETS } from "@/demo/instructions";
+import { openingMandate } from "@/demo/console";
 
 export const dynamic = "force-dynamic";
 
-export default function AgentPage() {
+export default async function AgentPage() {
+  const mandate = await openingMandate();
+
   return (
     <>
       <PageHeading
@@ -18,7 +21,7 @@ export default function AgentPage() {
         model&rsquo;s own reasoning, its real tool calls, and the merchant&rsquo;s real answers.
       </p>
 
-      <AgentConsole presets={PRESETS} />
+      <AgentConsole presets={PRESETS} mandate={mandate} />
     </>
   );
 }

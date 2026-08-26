@@ -2,16 +2,21 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import type { Misquote } from "@/demo/agent";
+import type { DecisionSummary, Mandate, Misquote } from "@/demo/agent";
 import type { Preset } from "@/demo/instructions";
 import { Step, type StepEvent } from "./transcript";
+import { MandateStrip } from "./mandate";
+import { Decisions } from "./decisions";
 
-interface Run { model: string; temperature: number }
+interface Run { model: string; temperature: number; agent: string }
 
-export function AgentConsole({ presets }: { presets: Preset[] }) {
+export function AgentConsole({ presets, mandate: seeded }: { presets: Preset[]; mandate: Mandate | null }) {
   const [instruction, setInstruction] = useState(presets[0].instruction);
+  const [who, setWho] = useState<"shopbot" | "frozen">("shopbot");
   const [steps, setSteps] = useState<StepEvent[]>([]);
   const [run, setRun] = useState<Run | null>(null);
+  const [mandate, setMandate] = useState<Mandate | null>(seeded);
+  const [decisions, setDecisions] = useState<DecisionSummary[]>([]);
   const [misquotes, setMisquotes] = useState<Misquote[]>([]);
   const [verdict, setVerdict] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -26,16 +31,18 @@ export function AgentConsole({ presets }: { presets: Preset[] }) {
 
   function start() {
     stop();
-    setSteps([]); setMisquotes([]); setVerdict(null); setOrderId(null); setRun(null); setRunning(true);
+    setSteps([]); setMisquotes([]); setDecisions([]); setVerdict(null); setOrderId(null); setRun(null); setRunning(true);
 
-    const es = new EventSource(`/api/demo/agent?instruction=${encodeURIComponent(instruction)}`);
+    const es = new EventSource(`/api/demo/agent?agent=${who}&instruction=${encodeURIComponent(instruction)}`);
     source.current = es;
     es.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === "start") setRun({ model: data.model, temperature: data.temperature });
+      if (data.type === "start") { setRun({ model: data.model, temperature: data.temperature, agent: data.agent }); setMandate(data.mandate); }
       if (data.type === "step") setSteps((prior) => [...prior, data]);
       if (data.type === "done") {
         setMisquotes(data.misquotes ?? []);
+        setDecisions(data.decisions ?? []);
+        setMandate(data.mandate);
         setOrderId(data.orderId ?? null);
         setVerdict(data.text || "finished without a closing statement");
         stop();
@@ -48,6 +55,26 @@ export function AgentConsole({ presets }: { presets: Preset[] }) {
 
   return (
     <>
+      <div className="mb-8">
+        <MandateStrip mandate={mandate} agent={run?.agent ?? (who === "frozen" ? "FrozenBot" : "ShopBot")} />
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="label mr-2">acting as</span>
+        {(["shopbot", "frozen"] as const).map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setWho(id)}
+            className={`rounded border px-3 py-1.5 text-xs transition-colors ${
+              who === id ? "border-accent/50 text-accent" : "border-hairline text-fg-3 hover:text-fg"
+            }`}
+          >
+            {id === "shopbot" ? "ShopBot — active" : "FrozenBot — frozen"}
+          </button>
+        ))}
+      </div>
+
       <div className="mb-3 flex flex-wrap gap-2">
         {presets.map((p) => (
           <button
@@ -95,6 +122,8 @@ export function AgentConsole({ presets }: { presets: Preset[] }) {
       </div>
 
       {steps.length > 0 && <ol className="mt-8">{steps.map((s) => <Step key={s.index} step={s} />)}</ol>}
+
+      {decisions.length > 0 && <Decisions rows={decisions} />}
 
       {misquotes.length > 0 && (
         <div className="mt-8 rounded border border-refuse/40 p-5">
