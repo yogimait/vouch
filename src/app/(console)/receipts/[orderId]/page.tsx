@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { orderItem } from "@/core/db/queries";
 import type { ReceiptBody } from "@/core/receipts/build";
 import { verifyStored } from "@/core/receipts/verify";
 import { ReceiptFacts } from "./cards";
 import { Blocks } from "../blocks";
-import { PageHeading, PageScroll } from "../../ui";
+import { PageHeading, ScrollPanel } from "../../ui";
 
 export const dynamic = "force-dynamic";
 
@@ -17,19 +18,29 @@ export default async function ReceiptPage({ params }: { params: Promise<{ orderI
   }
 
   const body = JSON.parse(loaded.bundle.receipt) as ReceiptBody;
+  // What was bought leads. The receipt id is an identifier; the product is what a human recognises.
+  const item = await orderItem(orderId);
+  const bought = item ? `${item.sku} × ${item.qty}` : "";
 
   return (
     <>
-      <PageHeading title={body.receipt_id} subtitle={`Order ${orderId} · signed with ${loaded.bundle.key_id}`} />
+      <PageHeading
+        title={item?.name ?? body.receipt_id}
+        subtitle={`${bought} · receipt ${short(body.receipt_id)} · order ${short(orderId)} · signed with ${loaded.bundle.key_id}`}
+      />
       <ReceiptFacts body={body} verification={loaded.verification} />
 
-      <PageScroll>
+      <ScrollPanel title="Six blocks, each hashed on its own" count={6} bodyClassName="p-4">
         <Blocks blocks={body.blocks} hashes={body.block_hashes} tampered={loaded.verification.tamperedBlocks} />
-        <p className="mt-8 text-xs text-fg-3">
+        <p className="mt-6 text-xs text-fg-3">
           Export it with <span className="font-mono">npm run receipt export {orderId}</span> — the bundle carries
           the public key, so it verifies with no database, no keys and no network.
         </p>
-      </PageScroll>
+      </ScrollPanel>
     </>
   );
+}
+
+function short(id: string): string {
+  return id.length <= 20 ? id : `${id.slice(0, 10)}…${id.slice(-6)}`;
 }

@@ -145,15 +145,31 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  /* Every border in the app is a sub-pixel hairline. 1px reads as a frame; 0.8px reads as a rule. */
-  .border,
-  .border-t,
-  .border-b,
-  .border-l,
-  .border-r,
-  .border-y,
-  .border-x {
+  /*
+   * Every border in the app is a sub-pixel hairline. 1px reads as a frame; 0.8px reads as a rule.
+   * Per side, never the border-width shorthand: the shorthand set all four sides, so every border-b
+   * in the app grew three phantom edges and single rules rendered as open boxes.
+   */
+  .border {
     border-width: var(--hairline-width);
+  }
+  .border-t {
+    border-top-width: var(--hairline-width);
+  }
+  .border-b {
+    border-bottom-width: var(--hairline-width);
+  }
+  .border-l {
+    border-left-width: var(--hairline-width);
+  }
+  .border-r {
+    border-right-width: var(--hairline-width);
+  }
+  .border-x {
+    border-inline-width: var(--hairline-width);
+  }
+  .border-y {
+    border-block-width: var(--hairline-width);
   }
 }
 
@@ -257,6 +273,42 @@
     opacity: 1;
     transform: none;
     filter: blur(0);
+  }
+}
+
+/*
+ * The list entrance, in CSS rather than one motion component per row. React Bits animates each item
+ * from an IntersectionObserver; a hundred of those on the decisions table is what cost five seconds.
+ * A delay set inline on the first screenful buys the same stagger for nothing.
+ */
+@utility list-in {
+  animation: list-in var(--t-move) var(--e-overshoot) both;
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The typing caret. Two keyframes instead of the gsap timeline React Bits ships it with. */
+@utility caret {
+  animation: caret 1s steps(1) infinite;
+}
+
+@keyframes caret {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
   }
 }
 

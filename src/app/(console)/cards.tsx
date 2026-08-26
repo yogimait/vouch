@@ -6,6 +6,7 @@
  */
 
 import { MagicCard } from "@/components/ui/magic-card";
+import { NoiseTexture } from "@/components/ui/noise-texture";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { cn } from "@/lib/utils";
@@ -21,19 +22,24 @@ export function Quadrant({ children }: { children: React.ReactNode }) {
 export function StatCard({ title, index = 0, children }: { title: string; index?: number; children: React.ReactNode }) {
   return (
     <BlurFade delay={index * 0.06} duration={0.7} offset={10} inView>
-      <MagicCard
-        className="relative h-full overflow-hidden rounded-[3px] p-0"
-        gradientSize={260}
-        gradientFrom="#2dd4bf"
-        gradientTo="rgba(45,212,191,0.18)"
-        gradientColor="#101013"
-        gradientOpacity={0.3}
-      >
-        <div className="flex h-full flex-col p-4">
-          <span className="label">{title}</span>
-          {children}
-        </div>
-      </MagicCard>
+      <div className="relative h-full">
+        <MagicCard
+          className="relative h-full overflow-hidden rounded-[3px] p-0"
+          gradientSize={260}
+          gradientFrom="#2dd4bf"
+          gradientTo="rgba(45,212,191,0.18)"
+          gradientColor="#101013"
+          gradientOpacity={0.3}
+        >
+          <div className="flex h-full flex-col p-4">
+            <span className="label">{title}</span>
+            {children}
+          </div>
+        </MagicCard>
+        {/* Outside MagicCard on purpose: it wraps its children in a content-height div, so a grain
+            layer placed inside stopped wherever the card's text did. */}
+        <NoiseTexture className="rounded-[3px] opacity-[0.55]" frequency={0.8} slope={0.2} />
+      </div>
     </BlurFade>
   );
 }
@@ -93,7 +99,7 @@ export function BarRow({ name, value, of, tone = "neutral", mono, width = "w-[5.
 /** A hairline-separated list, for sets that are counted apart and never summed. */
 export function HairRow({ name, value }: { name: string; value: string | number }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0">
+    <div className="flex items-center justify-between gap-3 border-b border-hairline px-0.5 py-1.5 last:border-b-0">
       <span className="font-mono text-[11px]">{name}</span>
       <span className="font-mono text-xs tabular-nums">{value}</span>
     </div>

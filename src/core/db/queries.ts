@@ -147,6 +147,7 @@ export interface ReceiptRow {
   id: string;
   orderId: string;
   sku: string;
+  itemName: string | null;
   qty: number;
   amountPaise: bigint;
   agentName: string;
@@ -166,6 +167,7 @@ export async function listReceipts(limit = 50): Promise<ReceiptRow[]> {
       blockHashes: receipts.blockHashes,
       signedAt: receipts.signedAt,
       sku: offers.sku,
+      itemName: catalogItems.name,
       qty: offers.qty,
       amount: sql<string>`${orders.amountPaise}::text`,
       agentName: buyerAgents.name,
@@ -175,6 +177,7 @@ export async function listReceipts(limit = 50): Promise<ReceiptRow[]> {
     .from(receipts)
     .innerJoin(orders, eq(orders.id, receipts.orderId))
     .innerJoin(offers, eq(offers.id, orders.offerId))
+    .leftJoin(catalogItems, eq(catalogItems.sku, offers.sku))
     .leftJoin(buyerAgents, eq(buyerAgents.id, orders.agentId))
     .leftJoin(decisions, eq(decisions.orderId, orders.id))
     .orderBy(desc(receipts.signedAt))
@@ -186,6 +189,19 @@ export async function listReceipts(limit = 50): Promise<ReceiptRow[]> {
     outcome: r.outcome ?? "—",
     amountPaise: paiseFromSql(r.amount),
   }));
+}
+
+/** What was bought, for a heading. The receipt body carries the sku, never the merchant's copy. */
+export async function orderItem(orderId: string): Promise<{ sku: string; qty: number; name: string | null } | null> {
+  const [row] = await getDb()
+    .select({ sku: offers.sku, qty: offers.qty, name: catalogItems.name })
+    .from(orders)
+    .innerJoin(offers, eq(offers.id, orders.offerId))
+    .leftJoin(catalogItems, eq(catalogItems.sku, offers.sku))
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  return row ?? null;
 }
 
 export interface MisquoteRow {

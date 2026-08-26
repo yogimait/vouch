@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Disc } from "./(marketing)/disc";
+import { Hero } from "./(marketing)/hero";
 import { Stats, StatsSkeleton } from "./(marketing)/stats";
 import { Verdicts } from "./(marketing)/verdicts";
 import { Proof } from "./(marketing)/proof";
@@ -18,27 +18,7 @@ export default function Landing() {
         <Button asChild size="sm"><Link href="/agent">Open the console</Link></Button>
       </header>
 
-      {/* Left-aligned, not centred: DESIGN_INTEL §6 item 7 is explicit, and the shipped page broke it. */}
-      <section className="relative isolate flex min-h-dvh flex-col justify-center overflow-hidden px-6 pt-28 pb-[42vh] sm:px-10">
-        <div className="mx-auto w-full max-w-[1200px]">
-          <p className="kicker">{"// merchant-side admission"}</p>
-          <h1 className="display-xl mt-6 max-w-[15ch]">
-            Proof that the agent was <span className="em">allowed</span> to spend
-          </h1>
-          <p className="mt-8 max-w-[52ch] text-lg leading-relaxed text-fg-2">
-            An AI buyer is about to move your money. Something has to answer before it does — and
-            afterwards, something has to prove what the answer was.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Button asChild size="lg"><Link href="/agent">Watch an agent try</Link></Button>
-            <Button asChild size="lg" variant="outline"><Link href="/decisions">Read the decisions</Link></Button>
-          </div>
-        </div>
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[52vh]">
-          <Disc />
-        </div>
-      </section>
+      <Hero />
 
       {/* Each streams behind the fold: nothing above it waits on a database round trip. */}
       <Suspense fallback={<StatsSkeleton />}><Stats /></Suspense>

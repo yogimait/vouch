@@ -16,16 +16,19 @@ interface Props<T> {
   rows: T[];
   rowKey: (row: T, index: number) => string;
   empty: ReactNode;
-  /** Fills its parent and scrolls itself, header pinned. The page then never scrolls. */
+  /** Lets the AnimatedList around it scroll, header pinned. The page itself then never scrolls. */
   fill?: boolean;
 }
+
+/** Only the top rows are staggered: past a screenful the delay is invisible and just deferred paint. */
+const STAGGERED = 14;
 
 /** Four pages were carrying the same thead/tbody markup. The columns are the only real difference. */
 export function DataTable<T>({ columns, rows, rowKey, empty, fill }: Props<T>) {
   if (rows.length === 0) return <>{empty}</>;
 
   return (
-    <Table containerClassName={cn(fill && "lg:h-full lg:overflow-auto")}>
+    <Table containerClassName={cn(fill && "lg:overflow-visible")}>
       <TableHeader className={cn(fill && "lg:sticky lg:top-0 lg:z-10 lg:bg-background")}>
         <TableRow className="hover:bg-transparent">
           {columns.map((c) => (
@@ -37,7 +40,11 @@ export function DataTable<T>({ columns, rows, rowKey, empty, fill }: Props<T>) {
       </TableHeader>
       <TableBody>
         {rows.map((row, i) => (
-          <TableRow key={rowKey(row, i)} className="align-top">
+          <TableRow
+            key={rowKey(row, i)}
+            className="list-in align-top"
+            style={i < STAGGERED ? { animationDelay: `${i * 28}ms` } : undefined}
+          >
             {columns.map((c) => (
               <TableCell
                 key={c.header}
