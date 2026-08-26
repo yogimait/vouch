@@ -15,7 +15,10 @@ import { formatInr } from "@/core/money";
 
 const BASE = process.env.APP_URL ?? "http://localhost:3000";
 const KEY = process.env.VOUCH_AGENT_KEY ?? "vouch_sk_demo_shopbot";
-const SKU = process.argv[2] ?? "SKU-B";
+// 4 x Rs 3,500 = Rs 14,000, over the Rs 11,000 per-order cap. Headroom alone would escalate at
+// Rs 9,000, so the quantity has to clear that too or the wrong rule takes the credit.
+const SKU = process.argv[2] ?? "SKU-A";
+const QTY = Number(process.argv[3] ?? 4);
 
 interface Reason { code: string; observed?: string; expected?: string; rule?: string }
 interface Envelope<T> { status: boolean; statusCode: number; data?: T; message?: string; error?: { code: string; details?: Record<string, unknown> } }
@@ -37,7 +40,7 @@ async function call<T>(path: string, body?: unknown): Promise<Envelope<T>> {
 
 async function main(): Promise<void> {
   const quote = await call<{ offer_token: string; total_display: string; total_paise: string }>(
-    "/api/quote", { sku: SKU, qty: 1 },
+    "/api/quote", { sku: SKU, qty: QTY },
   );
   if (!quote.data) throw new Error(`quote refused: ${quote.error?.code}`);
   console.log(`\n1. the agent quotes ${SKU} at ${quote.data.total_display}`);
