@@ -1,11 +1,12 @@
 // Read models for the console. Money is cast ::text and re-parsed so the driver cannot round it.
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import {
   authorizationLedger, authorizations, buyerAgents, catalogItems, decisions, misquoteEvents,
   offers, orders, receipts,
 } from "@/core/db/schema";
 import { paiseFromSql } from "@/core/money";
+import { balances } from "@/core/ledger";
 import type { DecisionReason } from "@/core/db/schema";
 
 export interface DecisionRow {
@@ -494,4 +495,156 @@ export async function landingProof(): Promise<LandingProof> {
       : null,
     verdicts: { admit: Number(v.admit), escalate: Number(v.escalate), refuse: Number(v.refuse) },
   };
+}
+
+export interface GateItem {
+  sku: string;
+  name: string;
+  category: string;
+  unitPricePaise: string;
+  inventory: number;
+}
+
+/**
+ * Everything the landing page's gate needs to build an AdmissionContext in the browser. Money
+ * crosses as strings: bigint is not serialisable across the server/client boundary, and rounding
+ * it into a number to get it there would break the one rule this project does not bend.
+ */
+export interface GateFacts {
+  agentId: string;
+  agentStatus: "ACTIVE" | "FROZEN";
+  authorizationId: string;
+  authStatus: string;
+  maxAmountPaise: string;
+  maxPerOrderPaise: string;
+  maxOrdersPerHour: number;
+  allowedCategories: string[];
+  allowedSkus: string[];
+  expireAt: string;
+  debitedPaise: string;
+  heldPaise: string;
+  ordersLastHour: number;
+  items: GateItem[];
+}
+
+export async function gateFacts(): Promise<GateFacts | null> {
+  const db = getDb();
+
+  // Sequential, not Promise.all: several pooled connections per request deadlock the pool.
+  const [auth] = await db.select().from(authorizations)
+    .where(eq(authorizations.status, "confirmed")).orderBy(desc(authorizations.grantedAt)).limit(1);
+  if (!auth) return null;
+
+  const [agent] = await db.select().from(buyerAgents).where(eq(buyerAgents.id, auth.agentId)).limit(1);
+  if (!agent) return null;
+
+  const items = await gateItems(auth.allowedCategories);
+
+  const bal = await balances(auth.id, auth.maxAmountPaise);
+  const recent = (await db.execute(sql`
+    select count(*)::text as n from orders
+    where agent_id = ${auth.agentId} and created_at > now() - interval '1 hour'
+  `)) as unknown as { n: string }[];
+
+  return {
+    agentId: agent.id,
+    agentStatus: agent.status,
+    authorizationId: auth.id,
+    authStatus: auth.status,
+    maxAmountPaise: auth.maxAmountPaise.toString(),
+    maxPerOrderPaise: auth.maxPerOrderPaise.toString(),
+    maxOrdersPerHour: auth.maxOrdersPerHour,
+    allowedCategories: auth.allowedCategories,
+    allowedSkus: auth.allowedSkus,
+    expireAt: auth.expireAt.toISOString(),
+    debitedPaise: bal.debitedPaise.toString(),
+    heldPaise: bal.heldPaise.toString(),
+    ordersLastHour: Number(recent[0]?.n ?? "0"),
+    items,
+  };
+}
+
+/**
+ * A spread the visitor can actually learn something from: three prices inside the authorization's
+ * scope, and the cheapest row outside it. Without that fourth chip every ceiling is a money ceiling
+ * and REFUSE is unreachable — the panel would only ever say yes or ask a human.
+ */
+async function gateItems(allowed: string[]): Promise<GateItem[]> {
+  const db = getDb();
+  const columns = {
+    sku: catalogItems.sku,
+    name: catalogItems.name,
+    category: catalogItems.category,
+    unitPricePaise: sql<string>`${catalogItems.listPricePaise}::text`,
+    inventory: catalogItems.inventory,
+  };
+  if (allowed.length === 0) return [];
+
+  const inScope = await db.select(columns).from(catalogItems)
+    .where(and(eq(catalogItems.active, true), inArray(catalogItems.category, allowed)))
+    .orderBy(catalogItems.listPricePaise).limit(12);
+  const [outside] = await db.select(columns).from(catalogItems)
+    .where(and(eq(catalogItems.active, true), notInArray(catalogItems.category, allowed)))
+    .orderBy(catalogItems.listPricePaise).limit(1);
+
+  const picks = inScope.length === 0
+    ? []
+    : [inScope[0], inScope[Math.floor(inScope.length / 2)], inScope[inScope.length - 1]];
+
+  return [...picks, ...(outside ? [outside] : [])];
+}
+
+export interface LatestVerdict {
+  outcome: "ADMIT" | "ESCALATE" | "REFUSE";
+  agentName: string;
+  sku: string | null;
+  qty: number | null;
+  amountPaise: string | null;
+  code: string | null;
+  observed: string | null;
+  expected: string | null;
+  latencyMs: number;
+  source: string;
+  at: string;
+}
+
+/**
+ * One real row per verdict, newest of each. The landing page shows three cards; inventing any of
+ * them would be the exact failure this product argues against, so a missing verdict shows nothing.
+ */
+export async function latestVerdicts(): Promise<LatestVerdict[]> {
+  const rows = (await getDb().execute(sql`
+    select distinct on (d.outcome)
+           d.outcome, d.latency_ms, d.source, d.created_at,
+           coalesce(b.name, 'an agent') as agent_name,
+           o.sku, o.qty, o.total_paise::text as amount,
+           d.reasons -> 0 ->> 'code' as code,
+           d.reasons -> 0 ->> 'observed' as observed,
+           d.reasons -> 0 ->> 'expected' as expected
+    from decisions d
+    left join offers o on o.id = d.offer_id
+    left join buyer_agents b on b.id = d.agent_id
+    -- A row with an offer behind it first: a refusal that never reached one has no sku and no
+    -- amount to show, and "not recorded" three times over is a worse card than an older row.
+    order by d.outcome, (d.offer_id is null), d.created_at desc
+  `)) as unknown as Record<string, string | number | null>[];
+
+  const order = { ADMIT: 0, ESCALATE: 1, REFUSE: 2 } as const;
+
+  return rows
+    .map((r) => ({
+      outcome: String(r.outcome) as LatestVerdict["outcome"],
+      agentName: String(r.agent_name),
+      sku: r.sku === null ? null : String(r.sku),
+      qty: r.qty === null ? null : Number(r.qty),
+      amountPaise: r.amount === null ? null : String(r.amount),
+      code: r.code === null ? null : String(r.code),
+      observed: r.observed === null ? null : String(r.observed),
+      expected: r.expected === null ? null : String(r.expected),
+      latencyMs: Number(r.latency_ms ?? 0),
+      source: String(r.source),
+      // db.execute returns the driver's raw row, so a timestamp arrives as a string here.
+      at: new Date(String(r.created_at)).toISOString(),
+    }))
+    .sort((a, b) => order[a.outcome] - order[b.outcome]);
 }

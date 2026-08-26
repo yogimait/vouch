@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { latestVerdicts } from "@/core/db/queries";
 import Ferrofluid from "@/components/ui/ferrofluid";
 import { TextType } from "@/components/ui/text-type";
+import { VerdictPixels } from "./verdict-pixels";
 
 /**
  * Module scope on purpose: Ferrofluid lists `colors` in its effect deps, so an inline array would
@@ -13,6 +16,12 @@ const FLUID = ["#04201d", "#0a3d38", "#12655c"];
 const VERDICTS = ["allowed to spend", "refused, and told why", "beyond its authority"];
 
 const LONGEST = VERDICTS.reduce((a, b) => (b.length > a.length ? b : a));
+
+/** Its own read, behind its own boundary: the headline must never wait on Postgres to paint. */
+async function Verdicts() {
+  const rows = await latestVerdicts();
+  return <VerdictPixels rows={rows} />;
+}
 
 export function Hero() {
   return (
@@ -52,6 +61,11 @@ export function Hero() {
           <Button asChild size="lg"><Link href="/agent">Watch an agent try</Link></Button>
           <Button asChild size="lg" variant="outline"><Link href="/decisions">Read the decisions</Link></Button>
         </div>
+      </div>
+
+      {/* Three real rows, one per verdict. Desktop only: on a phone it would sit on the headline. */}
+      <div className="absolute top-1/2 right-[6%] hidden -translate-y-1/2 lg:block xl:right-[9%]">
+        <Suspense fallback={null}><Verdicts /></Suspense>
       </div>
     </section>
   );

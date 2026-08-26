@@ -99,7 +99,9 @@ suite("razorpay webhook", () => {
     await db.execute(sql`delete from webhook_events where raw_body = ${raw}`);
   });
 
-  it("settles the order and debits exactly once across two deliveries", async () => {
+  // Twenty-odd round trips to a hosted Postgres, twice over. Vitest's 5s default was a coin flip on
+  // a slow link, and a timing-out webhook test looks like a settlement bug that is not there.
+  it("settles the order and debits exactly once across two deliveries", { timeout: 30_000 }, async () => {
     const { raw, signature } = signed(capturedEvent(orderId, `pay_WH${stamp}`));
 
     const first = await handleWebhook(raw, signature);
