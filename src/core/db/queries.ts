@@ -298,3 +298,184 @@ export async function landingStats(): Promise<LandingStats> {
     p50Ms: row.p50 === null ? null : Number(row.p50),
   };
 }
+
+export interface ReasonCount { code: string; n: number; escalates: boolean }
+export interface SourceCount { source: string; n: number }
+
+export interface DecisionsOverview {
+  totals: DecisionTotals;
+  reasons: ReasonCount[];
+  sources: SourceCount[];
+  /** Engine-only microseconds. The http rows time two database reads as well and are not comparable. */
+  p50Micros: number | null;
+  p95Micros: number | null;
+  /** Newest first, oldest last, for a sparkline. Harness only, same reason as the percentiles. */
+  recentLatencyMs: number[];
+}
+
+/**
+ * Everything the console's four summary cards need, in three concurrent round trips rather than
+ * seven sequential ones. The page is dominated by Supabase latency, so overlapping them is the
+ * difference between 400ms and 1.2s.
+ */
+export async function decisionsOverview(): Promise<DecisionsOverview> {
+  const db = getDb();
+
+  // Sequential, not Promise.all. Promise.all builds the array eagerly, so every statement
+  // takes a pooled connection at once; holding several per request deadlocks the pool the
+  // moment a few pages load together — the browser then shows a skeleton that never ends.
+  const totals = (await db.execute(sql`
+      select
+        count(*)::text as total,
+        count(*) filter (where outcome = 'ADMIT')::text as admit,
+        count(*) filter (where outcome = 'ESCALATE')::text as escalate,
+        count(*) filter (where outcome = 'REFUSE')::text as refuse,
+        (select percentile_disc(0.5) within group (order by latency_ms)::text
+           from decisions where source = 'harness') as p50,
+        (select percentile_disc(0.95) within group (order by latency_ms)::text
+           from decisions where source = 'harness') as p95,
+        (select coalesce(json_agg(l order by rn), '[]')::text from (
+           select latency_ms as l, row_number() over (order by created_at desc) as rn
+           from decisions where source = 'harness' order by created_at desc limit 24
+         ) s) as recent
+      from decisions
+    `)) as unknown as Record<string, string | null>[];
+  // The first reason is the one that fired: the engine is ordered first-match, so reasons[0]
+  // names the rule that actually stopped the payment. Later entries are context, not the verdict.
+  const reasonRows = (await db.execute(sql`
+      select
+        reasons -> 0 ->> 'code' as code,
+        count(*)::text as n,
+        bool_or(outcome = 'ESCALATE') as escalates
+      from decisions
+      where jsonb_array_length(reasons) > 0
+      group by 1
+      order by count(*) desc
+      limit 6
+    `)) as unknown as Record<string, string | boolean | null>[];
+  const sourceRows = (await db.execute(sql`
+      select source, count(*)::text as n from decisions group by source order by count(*) desc
+    `)) as unknown as Record<string, string>[];
+
+  const t = totals[0];
+  const recent: number[] = JSON.parse(String(t.recent ?? "[]"));
+
+  return {
+    totals: {
+      total: Number(t.total), admit: Number(t.admit),
+      escalate: Number(t.escalate), refuse: Number(t.refuse),
+    },
+    reasons: reasonRows
+      .filter((r) => r.code !== null)
+      .map((r) => ({ code: String(r.code), n: Number(r.n), escalates: r.escalates === true })),
+    sources: sourceRows.map((r) => ({ source: String(r.source), n: Number(r.n) })),
+    // latency_ms is stored as milliseconds; the engine resolves well under one, so the card
+    // reports microseconds and never rounds a real sub-millisecond decision down to "0ms".
+    p50Micros: t.p50 === null ? null : Number(t.p50) * 1000,
+    p95Micros: t.p95 === null ? null : Number(t.p95) * 1000,
+    recentLatencyMs: recent,
+  };
+}
+
+export interface LandingProof {
+  /** The most recent refusal, with the numbers that produced it. Null on an unseeded database. */
+  refusal: {
+    code: string;
+    message: string;
+    observed: string | null;
+    expected: string | null;
+    sku: string | null;
+    qty: number | null;
+    totalPaise: bigint | null;
+    agentName: string;
+    latencyMs: number;
+    at: Date;
+  } | null;
+  /** The newest signed receipt. Its body hash is the one thing on the landing page that decodes. */
+  receipt: {
+    id: string;
+    orderId: string;
+    bodyHash: string;
+    keyId: string;
+    amountPaise: bigint;
+    merchantName: string;
+    signedAt: Date;
+  } | null;
+  verdicts: { admit: number; escalate: number; refuse: number };
+}
+
+/**
+ * The landing page states three things it cannot be allowed to invent: a refusal, a receipt, and the
+ * split of verdicts. All three are read here so the front door and the console cannot disagree.
+ */
+export async function landingProof(): Promise<LandingProof> {
+  const db = getDb();
+
+  // Sequential, not Promise.all. Promise.all builds the array eagerly, so every statement
+  // takes a pooled connection at once; holding several per request deadlocks the pool the
+  // moment a few pages load together — the browser then shows a skeleton that never ends.
+  const refusalRows = (await db.execute(sql`
+      select d.reasons -> 0 ->> 'code' as code,
+             d.reasons -> 0 ->> 'message' as message,
+             d.reasons -> 0 ->> 'observed' as observed,
+             d.reasons -> 0 ->> 'expected' as expected,
+             o.sku, o.qty, o.total_paise::text as total,
+             coalesce(b.name, 'an agent') as agent_name,
+             d.latency_ms, d.created_at
+      from decisions d
+      left join offers o on o.id = d.offer_id
+      left join buyer_agents b on b.id = d.agent_id
+      where d.outcome = 'REFUSE' and jsonb_array_length(d.reasons) > 0
+      order by d.created_at desc
+      limit 1
+    `)) as unknown as Record<string, string | number | Date | null>[];
+  const receiptRows = (await db.execute(sql`
+      select r.id, r.order_id, r.body_hash, r.key_id, r.signed_at,
+             o.amount_paise::text as amount, m.name as merchant_name
+      from receipts r
+      join orders o on o.id = r.order_id
+      join offers f on f.id = o.offer_id
+      join merchants m on m.id = f.merchant_id
+      order by r.signed_at desc
+      limit 1
+    `)) as unknown as Record<string, string | Date>[];
+  const verdictRows = (await db.execute(sql`
+      select count(*) filter (where outcome = 'ADMIT')::text as admit,
+             count(*) filter (where outcome = 'ESCALATE')::text as escalate,
+             count(*) filter (where outcome = 'REFUSE')::text as refuse
+      from decisions
+    `)) as unknown as Record<string, string>[];
+
+  const d = refusalRows[0];
+  const r = receiptRows[0];
+  const v = verdictRows[0];
+
+  return {
+    refusal: d
+      ? {
+          code: String(d.code),
+          message: String(d.message ?? ""),
+          observed: d.observed === null ? null : String(d.observed),
+          expected: d.expected === null ? null : String(d.expected),
+          sku: d.sku === null ? null : String(d.sku),
+          qty: d.qty === null ? null : Number(d.qty),
+          totalPaise: d.total === null ? null : paiseFromSql(String(d.total)),
+          agentName: String(d.agent_name),
+          latencyMs: Number(d.latency_ms),
+          at: new Date(String(d.created_at)),
+        }
+      : null,
+    receipt: r
+      ? {
+          id: String(r.id),
+          orderId: String(r.order_id),
+          bodyHash: String(r.body_hash),
+          keyId: String(r.key_id),
+          amountPaise: paiseFromSql(String(r.amount)),
+          merchantName: String(r.merchant_name),
+          signedAt: new Date(String(r.signed_at)),
+        }
+      : null,
+    verdicts: { admit: Number(v.admit), escalate: Number(v.escalate), refuse: Number(v.refuse) },
+  };
+}

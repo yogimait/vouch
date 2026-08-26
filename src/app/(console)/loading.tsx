@@ -1,22 +1,28 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * Every console page is force-dynamic and reads Postgres, so without this Next held the old page on
- * screen for the whole round trip and then swapped. Next prerenders this shell, so a click paints in
- * under 100ms and the data streams in behind it. Deliberately generic: it promises a heading and
- * rows, which every page here has, and no stat tiles, which only two of them do.
+ * The fallback for routes that have not been given their own shaped skeleton yet. It promises only
+ * what every console route has — a heading and a panel — because a skeleton that promises cards a
+ * route does not have makes the swap to real content move everything on screen.
  */
 export default function ConsoleLoading() {
   return (
-    <div className="page-enter">
-      <Skeleton className="h-7 w-56" />
-      <Skeleton className="mt-3 h-4 w-[28rem] max-w-full" />
+    <div className="page-enter flex flex-1 flex-col lg:min-h-0">
+      <header className="mb-5 shrink-0">
+        <Skeleton className="h-9 w-52 rounded-[3px]" />
+        <Skeleton className="mt-2 h-4 w-[30rem] max-w-full rounded-[3px]" />
+      </header>
 
-      <div className="mt-12 space-y-3">
-        {Array.from({ length: 10 }, (_, i) => (
-          <Skeleton key={i} className="h-10 w-full" style={{ opacity: 1 - i * 0.09 }} />
-        ))}
-      </div>
+      <section className="flex flex-1 flex-col rounded-[3px] border border-hairline lg:min-h-0">
+        <div className="shrink-0 border-b border-hairline px-4 py-3.5">
+          <Skeleton className="h-3 w-80 max-w-full rounded-[2px]" />
+        </div>
+        <div className="flex-1 px-3 pt-3 lg:min-h-0 lg:overflow-hidden">
+          {Array.from({ length: 10 }, (_, i) => (
+            <Skeleton key={i} className="mb-3 h-10 w-full rounded-[2px]" style={{ opacity: 1 - i * 0.09 }} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

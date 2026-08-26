@@ -10,11 +10,11 @@ export function Panel({ n, title, asks, children }: { n: number; title: string; 
       <div className="mb-5 flex items-baseline gap-4">
         <span className="font-display text-3xl text-fg-3">{String(n).padStart(2, "0")}</span>
         <div>
-          <h2 className="font-display text-xl tracking-wide">{title}</h2>
+          <h2 className="display-md text-2xl">{title}</h2>
           <p className="mt-0.5 text-sm text-fg-2">{asks}</p>
         </div>
       </div>
-      <Card className="glass gap-0 p-6">{children}</Card>
+      <Card className="gap-0 rounded-[3px] p-6">{children}</Card>
     </section>
   );
 }

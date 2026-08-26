@@ -73,6 +73,7 @@ function DockMobile({ items, pathname, className }: DockProps) {
               >
                 <Link
                   href={item.href}
+                  prefetch={false}
                   aria-label={item.title}
                   aria-current={isActive(pathname, item.href) ? "page" : undefined}
                   onClick={() => setOpen(false)}
@@ -131,7 +132,7 @@ function DockIcon({ mouseX, item, active }: { mouseX: MotionValue; item: DockIte
   const iconSize = useSpring(useTransform(distance, [-140, 0, 140], [18, 34, 18]), spring);
 
   return (
-    <Link href={item.href} aria-label={item.title} aria-current={active ? "page" : undefined}>
+    <Link href={item.href} prefetch={false} aria-label={item.title} aria-current={active ? "page" : undefined}>
       <motion.div
         ref={ref}
         style={{ width: size, height: size }}

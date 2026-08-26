@@ -53,3 +53,6 @@ docs/
 
 # Design mockups served for local review only.
 public/design/
+
+# Throwaway viewport-measurement harness, run from the repo so playwright resolves.
+measure.tmp.mjs

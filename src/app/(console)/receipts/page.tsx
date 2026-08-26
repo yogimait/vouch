@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { listReceipts, type ReceiptRow } from "@/core/db/queries";
+import { receiptsOverview } from "@/core/db/overview/receipts";
 import { DataTable, type Column } from "@/components/data-table";
-import { Empty, Id, Money, Outcome, PageHeading, type OutcomeValue } from "../ui";
+import { ReceiptCards } from "./cards";
+import { Empty, Id, Money, Outcome, PageHeading, ScrollPanel, type OutcomeValue } from "../ui";
 
+// Reads live data on every request. Without this Next prerenders it and bakes the seed in.
 export const dynamic = "force-dynamic";
 
 const COLUMNS: Column<ReceiptRow>[] = [
@@ -20,7 +23,7 @@ const COLUMNS: Column<ReceiptRow>[] = [
 ];
 
 export default async function ReceiptsPage() {
-  const rows = await listReceipts();
+  const [rows, overview] = await Promise.all([listReceipts(200), receiptsOverview()]);
 
   return (
     <>
@@ -28,12 +31,17 @@ export default async function ReceiptsPage() {
         title="Receipts"
         subtitle="One per settled order. Signed, block-hashed, and verifiable by anyone holding the file."
       />
-      <DataTable
-        columns={COLUMNS}
-        rows={rows}
-        rowKey={(r) => r.id}
-        empty={<Empty title="No receipts yet." hint="A receipt is issued the moment an order settles. Run: npm run demo:1" />}
-      />
+      <ReceiptCards overview={overview} />
+
+      <ScrollPanel title="One receipt per settled order, newest first" count={overview.receipts}>
+        <DataTable
+          fill
+          columns={COLUMNS}
+          rows={rows}
+          rowKey={(r) => r.id}
+          empty={<Empty title="No receipts yet." hint="A receipt is issued the moment an order settles. Run: npm run demo:1" />}
+        />
+      </ScrollPanel>
     </>
   );
 }

@@ -1,7 +1,19 @@
 import { Card } from "@/components/ui/card";
+import type { MandateRow } from "@/core/db/overview/authorizations";
 import { formatInr } from "@/core/money";
+import { Field, Id } from "../ui";
 
 interface Props { maxPaise: bigint; debitedPaise: bigint; heldPaise: bigint; availablePaise: bigint }
+
+// Only 'confirmed' is good news. 'rejected' and 'expired' are refusals; the other two are neither,
+// and painting all five in text-admit told the reader a rejected mandate was fine.
+const STATUS_TONE: Record<string, string> = {
+  confirmed: "text-admit",
+  rejected: "text-refuse",
+  expired: "text-refuse",
+  initiated: "text-fg-2",
+  completed: "text-fg-2",
+};
 
 /** Percentages only — this is layout, not money maths. Every displayed amount stays bigint. */
 function pct(part: bigint, whole: bigint): number {
@@ -14,7 +26,7 @@ export function CapacityBar({ maxPaise, debitedPaise, heldPaise, availablePaise 
   const held = pct(heldPaise, maxPaise);
 
   return (
-    <Card className="glass gap-0 p-6">
+    <Card className="gap-0 rounded-[3px] p-6">
       <div className="mb-3 flex items-baseline justify-between">
         <span className="label">Authorized capacity</span>
         <span className="label">of {formatInr(maxPaise)}</span>
@@ -22,14 +34,14 @@ export function CapacityBar({ maxPaise, debitedPaise, heldPaise, availablePaise 
 
       <div className="flex h-14 w-full overflow-hidden rounded border border-hairline">
         <div
-          className="bg-primary transition-[width] duration-500 ease-out"
+          className="bg-primary transition-[width] duration-[450ms] ease-overshoot"
           style={{ width: `${debited}%` }}
           title={`Debited ${formatInr(debitedPaise)}`}
         />
-        {/* Zero-width held would vanish, so it keeps a 2px tick to stay legible. */}
+        {/* No minimum width: a tick for zero held would be money the ledger never reserved. */}
         <div
-          className="bg-primary/35 transition-[width] duration-500 ease-out"
-          style={{ width: held > 0 ? `${held}%` : "2px" }}
+          className="bg-primary/35 transition-[width] duration-[450ms] ease-overshoot"
+          style={{ width: `${held}%` }}
           title={`Held ${formatInr(heldPaise)}`}
         />
         {/* A faint fill so the bar still reads as a bar when nothing has been debited yet. */}
@@ -49,5 +61,51 @@ export function CapacityBar({ maxPaise, debitedPaise, heldPaise, availablePaise 
         ))}
       </div>
     </Card>
+  );
+}
+
+/** One mandate in full: who delegated it, what is left, and the scope the engine reads. */
+export function MandateDetail({ m }: { m: MandateRow }) {
+  return (
+    <article className="border-b border-hairline px-4 py-6 last:border-b-0">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <div className="flex items-baseline gap-3">
+          <Id value={m.id} head={12} tail={7} />
+          <span className={`text-xs tracking-wide uppercase ${STATUS_TONE[m.status] ?? "text-fg-2"}`}>{m.status}</span>
+          {m.agentStatus === "FROZEN" && <span className="text-xs tracking-wide text-refuse uppercase">agent frozen</span>}
+        </div>
+        <span className="text-sm text-fg-2">
+          {m.agentName} — acting for <span className="font-mono">{m.principalRef}</span>
+        </span>
+      </div>
+
+      <CapacityBar
+        maxPaise={m.maxAmountPaise}
+        debitedPaise={m.debitedPaise}
+        heldPaise={m.heldPaise}
+        availablePaise={m.availablePaise}
+      />
+
+      <div className="mt-6 grid gap-x-12 gap-y-1 md:grid-cols-2">
+        <section>
+          <h2 className="label mb-2">The grant</h2>
+          <Field label="granted_by">{m.grantedBy}</Field>
+          <Field label="granted_via">{m.grantedVia}</Field>
+          <Field label="granted_at">{m.grantedAt.toISOString().slice(0, 16).replace("T", " ")}</Field>
+          <Field label="token_type">{m.tokenType}</Field>
+          <Field label="frequency">{m.frequency}</Field>
+          <Field label="signature"><Id value={m.grantSignature} /></Field>
+        </section>
+        <section>
+          <h2 className="label mb-2">The scope</h2>
+          <Field label="expire_at">{m.expireAt.toISOString().slice(0, 10)}</Field>
+          <Field label="max_per_order">{formatInr(m.maxPerOrderPaise)}</Field>
+          <Field label="max_orders_per_hour">{m.maxOrdersPerHour}</Field>
+          <Field label="allowed_categories">{m.allowedCategories.join(", ") || "—"}</Field>
+          {/* The list, when set, replaces the categories rather than narrowing within them. */}
+          <Field label="allowed_skus">{m.allowedSkus.join(", ") || "any within category"}</Field>
+        </section>
+      </div>
+    </article>
   );
 }

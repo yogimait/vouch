@@ -1,23 +1,25 @@
 import type { GateRow } from "@/core/db/queries";
+import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/data-table";
-import { latency, Outcome, type OutcomeValue } from "../ui";
+import { Empty, latency, Outcome, type OutcomeValue } from "../ui";
 
 const COLUMNS: Column<GateRow>[] = [
+  { header: "Source", cell: (r) => <Badge variant="outline" className="rounded-[2px] font-mono text-fg-3">{r.source}</Badge> },
   { header: "Violation class", cell: (r) => <span className="font-mono text-xs">{r.label ?? "—"}</span> },
   { header: "Outcome", cell: (r) => <Outcome value={r.outcome as OutcomeValue} /> },
   { header: "Count", align: "right", cell: (r) => <span className="font-mono tabular-nums">{r.n}</span> },
   { header: "p50", align: "right", cell: (r) => <span className="font-mono text-xs text-fg-3">{latency(r.p50Ms)}</span> },
 ];
 
-/** Grouped by source first. A single "total decisions" figure across sources would be a lie. */
-export function GateTable({ rows, source }: { rows: GateRow[]; source: string }) {
-  const mine = rows.filter((r) => r.source === source);
-  if (mine.length === 0) return <p className="text-sm text-fg-3">Nothing recorded from {source}.</p>;
-
+/** Source is a column, not a tab: the rows have to sit together to be read as separate clocks. */
+export function GateTable({ rows }: { rows: GateRow[] }) {
   return (
-    <>
-      <DataTable columns={COLUMNS} rows={mine} rowKey={(r) => `${r.label}-${r.outcome}`} empty={null} />
-      <p className="mt-3 text-xs text-fg-3">{mine.reduce((n, r) => n + r.n, 0)} decisions from {source}.</p>
-    </>
+    <DataTable
+      fill
+      columns={COLUMNS}
+      rows={rows}
+      rowKey={(r) => `${r.source}-${r.label}-${r.outcome}`}
+      empty={<Empty title="No decisions yet." hint="The labelled classes appear after: npm run harness" />}
+    />
   );
 }

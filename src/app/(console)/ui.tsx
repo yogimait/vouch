@@ -10,17 +10,39 @@ const VARIANT = { ADMIT: "admit", ESCALATE: "escalate", REFUSE: "refuse" } as co
 
 export function PageHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <header className="mb-8">
-      <h1 className="font-display text-2xl tracking-wide">{title}</h1>
+    <header className="mb-5 shrink-0">
+      <h1 className="display-md">{title}</h1>
       {subtitle && <p className="mt-1 text-sm text-fg-2">{subtitle}</p>}
     </header>
+  );
+}
+
+/** For routes whose whole body scrolls rather than one panel inside it. The console shell is a
+ *  fixed-height flex column, so without this a long page is clipped instead of scrolled. */
+export function PageScroll({ children }: { children: ReactNode }) {
+  return <div className="flex-1 lg:-mr-3 lg:min-h-0 lg:overflow-y-auto lg:pr-3">{children}</div>;
+}
+
+/**
+ * The one element on a console page that scrolls. It takes the height the heading and cards leave
+ * behind, so the page itself never grows — a dashboard whose summary scrolls away is a report.
+ */
+export function ScrollPanel({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
+  return (
+    <section className="mt-3 flex flex-1 flex-col rounded-[3px] border border-hairline lg:min-h-0">
+      <header className="flex shrink-0 items-baseline justify-between gap-4 border-b border-hairline px-4 py-3.5">
+        <span className="label">{title}</span>
+        {count !== undefined && <span className="font-mono text-xs tabular-nums text-fg-3">{count}</span>}
+      </header>
+      <div className="flex-1 lg:min-h-0 lg:overflow-hidden">{children}</div>
+    </section>
   );
 }
 
 export function StatTile({ label, value, accent }: { label: string; value: string; accent?: OutcomeValue }) {
   return (
     <Card
-      className="glass gap-0 py-5"
+      className="gap-0 rounded-[3px] py-5"
       style={accent ? { borderTopWidth: 2, borderTopColor: `var(--${accent.toLowerCase()})` } : undefined}
     >
       <CardContent className="px-6">
@@ -33,7 +55,7 @@ export function StatTile({ label, value, accent }: { label: string; value: strin
 
 export function Outcome({ value }: { value: OutcomeValue }) {
   return (
-    <Badge variant={VARIANT[value]} className="gap-1.5 font-medium tracking-wide">
+    <Badge variant={VARIANT[value]} className="gap-1.5 rounded-[2px] font-medium tracking-wide">
       <span className="size-1.5 rounded-full bg-current" />
       {value}
     </Badge>
@@ -61,7 +83,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 
 export function Empty({ title, hint }: { title: string; hint: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-hairline px-8 py-16 text-center">
+    <div className="rounded-[3px] border border-dashed border-hairline px-8 py-16 text-center">
       <p className="text-sm text-fg-2">{title}</p>
       <p className="mt-2 font-mono text-xs text-fg-3">{hint}</p>
     </div>
@@ -90,7 +112,7 @@ interface VerdictProps {
 /** States the verdict and what produced it, because "valid" alone is not evidence of anything. */
 export function Verdict({ valid, signatureValid, tampered, chain }: VerdictProps) {
   return (
-    <Card className={cn("glass gap-0 p-6", valid ? "border-admit/30" : "border-refuse/40")}>
+    <Card className={cn("gap-0 rounded-[3px] p-6", valid ? "border-admit/30" : "border-refuse/40")}>
       <div className={cn("font-display text-2xl", valid ? "text-admit" : "text-refuse")}>
         {valid ? "Verified" : "Does not verify"}
       </div>

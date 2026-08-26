@@ -107,7 +107,7 @@ export function BuyPanel({ items }: { items: Item[] }) {
       {result && (
         <div className="mt-8 border-t border-hairline pt-6">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <span className={`font-display text-2xl ${OUTCOME[result.outcome]}`}>{result.outcome}</span>
+            <span className={`font-mono text-base tracking-wide ${OUTCOME[result.outcome]}`}>{result.outcome}</span>
             <span className="text-sm text-fg-2">{result.message}</span>
           </div>
 
