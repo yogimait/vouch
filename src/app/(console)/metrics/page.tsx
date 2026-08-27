@@ -8,7 +8,10 @@ import { PageHeading, ScrollPanel } from "../ui";
 export const dynamic = "force-dynamic";
 
 export default async function MetricsPage() {
-  const [overview, gate] = await Promise.all([metricsOverview(), gateBreakdown()]);
+  // Sequential, not Promise.all: each holds a pooled connection for its whole chain, and the pool
+  // is twelve. See the same note in src/core/db/queries.ts — this is the layer that kept undoing it.
+  const overview = await metricsOverview();
+  const gate = await gateBreakdown();
 
   return (
     <>

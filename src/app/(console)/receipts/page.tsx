@@ -36,7 +36,10 @@ const COLUMNS: Column<ReceiptRow>[] = [
 ];
 
 export default async function ReceiptsPage() {
-  const [rows, overview] = await Promise.all([listReceipts(200), receiptsOverview()]);
+  // Sequential, not Promise.all: each holds a pooled connection for its whole chain, and the pool
+  // is twelve. See the same note in src/core/db/queries.ts — this is the layer that kept undoing it.
+  const rows = await listReceipts(200);
+  const overview = await receiptsOverview();
 
   return (
     <>

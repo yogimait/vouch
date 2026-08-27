@@ -15,10 +15,10 @@ export interface ConsoleData {
 
 export async function demoConsole(): Promise<ConsoleData> {
   const agent = await demoAgent("shopbot");
-  const [catalog, receipts] = await Promise.all([
-    getCatalog({ agentId: agent.id, source: "http" }),
-    listReceipts(20),
-  ]);
+  // Sequential: nesting this inside the page's own concurrency held three pooled connections for
+  // one /demo request, on the route a judge reloads most.
+  const catalog = await getCatalog({ agentId: agent.id, source: "http" });
+  const receipts = await listReceipts(20);
 
   return {
     items: catalog.items.map((i) => ({

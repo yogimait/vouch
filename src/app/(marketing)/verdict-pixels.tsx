@@ -33,6 +33,9 @@ export function VerdictPixels({ rows }: { rows: LatestVerdict[] }) {
 
   useEffect(() => {
     if (rows.length < 2) return;
+    // Replacing content mid-read is exactly what the preference asks you not to do, and PixelWord
+    // draws a single static frame under it — cycling here would leave the word behind the caption.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const timer = setInterval(() => setAt((i) => (i + 1) % rows.length), HOLD);
     return () => clearInterval(timer);
   }, [rows.length]);

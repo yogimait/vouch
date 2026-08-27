@@ -51,8 +51,8 @@ export interface AuthorizationsOverview {
 type Row = Record<string, string | string[] | Date | number | null>;
 
 /**
- * Everything the four summary cards and the mandate panel need, in three concurrent round trips.
- * Supabase latency dominates this page, so overlapping them is the whole cost difference.
+ * Everything the four summary cards and the mandate panel need, in three sequential round trips.
+ * Sequential is not an oversight — see the note in the body. Latency is the price of not deadlocking.
  */
 export async function authorizationsOverview(): Promise<AuthorizationsOverview> {
   const db = getDb();

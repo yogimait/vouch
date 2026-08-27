@@ -342,6 +342,9 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    /* Without this an infinite animation runs once a frame instead of once a second: the caret
+       became a 60Hz strobe, which is the one thing this preference most needs to suppress. */
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

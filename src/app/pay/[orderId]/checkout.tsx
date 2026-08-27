@@ -13,7 +13,7 @@ interface Props {
   description: string;
 }
 
-type Status = "checking" | "open" | "paying" | "paid" | "failed" | "dismissed" | "unavailable" | "pending";
+type Status = "checking" | "open" | "paying" | "paid" | "failed" | "dismissed" | "unavailable" | "pending" | "unreachable";
 
 const MESSAGE: Record<Status, string> = {
   checking: "Checking with Razorpay whether this order has already been paid.",
@@ -24,11 +24,12 @@ const MESSAGE: Record<Status, string> = {
   dismissed: "Checkout was closed. Nothing has been charged.",
   unavailable: "Razorpay's checkout script could not be loaded.",
   pending: "Razorpay has not reported a capture yet.",
+  unreachable: "This page could not reach the merchant to ask. Nothing has been charged twice.",
 };
 
 /** Razorpay is asked, not this page: a handler running where the payer can reach it proves nothing. */
-async function ask(orderId: string): Promise<string> {
-  const res = await fetch(`/api/orders/${orderId}/confirm`, { method: "POST" });
+async function ask(orderId: string, attempts: number): Promise<string> {
+  const res = await fetch(`/api/orders/${orderId}/confirm?attempts=${attempts}`, { method: "POST" });
   return (await res.json())?.data?.status ?? "PENDING";
 }
 
@@ -39,9 +40,18 @@ export function Checkout({ orderId, keyId, razorpayOrderId, amountPaise, merchan
   const router = useRouter();
   const reopen = useRef<(() => void) | null>(null);
 
-  const confirm = useCallback(async (tries: number): Promise<string> => {
+  // `attempts` is the server-side retry count. The pre-flight passes 1: confirmOrder sleeps 3s
+  // between passes, and nobody has paid yet, so three passes only bought a six-second stare.
+  // Guarded: an unguarded reject left status on "checking" forever, and "checking" is not stuck,
+  // so the recovery button never mounted — a dead end on the money path.
+  const confirm = useCallback(async (tries: number, attempts = 3): Promise<string> => {
     let state = "PENDING";
-    for (let i = 0; i < tries && state === "PENDING"; i++) state = await ask(orderId);
+    try {
+      for (let i = 0; i < tries && state === "PENDING"; i++) state = await ask(orderId, attempts);
+    } catch {
+      setStatus("unreachable");
+      return "UNREACHABLE";
+    }
     setStatus(state === "PAID" ? "paid" : state === "FAILED" ? "failed" : "pending");
     // The page's own facts are now stale: it renders the settled state and the receipt link itself.
     if (state !== "PENDING") router.refresh();
@@ -64,7 +74,7 @@ export function Checkout({ orderId, keyId, razorpayOrderId, amountPaise, merchan
       // the tab, or dismissed the modal after paying never confirmed and never got a receipt.
       // Confirming BEFORE checkout opens also keeps this poll off a live payment — confirmOrder
       // fails an order it finds attempted but uncaptured, and overlapping one would do just that.
-      const [state, ready] = await Promise.all([confirm(1), loaded]);
+      const [state, ready] = await Promise.all([confirm(1, 1), loaded]);
       if (cancelled || state !== "PENDING") return;
       if (!ready) return setStatus("unavailable");
 
@@ -96,11 +106,14 @@ export function Checkout({ orderId, keyId, razorpayOrderId, amountPaise, merchan
     };
   }, [orderId, keyId, razorpayOrderId, amountPaise, merchantName, description, confirm]);
 
-  const stuck = status === "dismissed" || status === "pending";
+  const stuck = status === "dismissed" || status === "pending" || status === "unreachable";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className={status === "paid" ? "text-sm text-admit" : "text-sm text-fg-2"} data-status={status}>
+      {/* Every transition here comes from an async source the payer never clicked — the checkout
+          handler, ondismiss, or the poll — so the two most consequential strings in the app used to
+          change in silence for anyone not watching this line. */}
+      <p role="status" className={status === "paid" ? "text-sm text-admit" : "text-sm text-fg-2"} data-status={status}>
         {MESSAGE[status]}
       </p>
 

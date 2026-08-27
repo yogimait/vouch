@@ -1,7 +1,8 @@
 import { demoOverview } from "@/core/db/overview/demo";
 import { demoConsole } from "@/demo/console";
+import { demoEnabled } from "@/demo/route";
 import { DEFAULT_INSTRUCTION } from "@/demo/agent";
-import { PageHeading, PageScroll } from "../ui";
+import { DemoGate, PageHeading, PageScroll } from "../ui";
 import { DemoCards } from "./cards";
 import { Panel } from "./panel";
 import { GatePanel } from "./gate-panel";
@@ -13,7 +14,10 @@ import { ResetButton } from "./reset-button";
 export const dynamic = "force-dynamic";
 
 export default async function DemoPage() {
-  const [{ items, settled }, overview] = await Promise.all([demoConsole(), demoOverview()]);
+  // Sequential, not Promise.all: each of these holds a pooled connection, and six pages doing this
+  // at once exhausted the pool. src/core/db/queries.ts states the rule the data layer follows.
+  const { items, settled } = await demoConsole();
+  const overview = await demoOverview();
 
   return (
     <>
@@ -21,6 +25,7 @@ export default async function DemoPage() {
         title="Live demo"
         subtitle="Four acts. Every number on this page is produced by the same code path a real agent uses."
       />
+      <DemoGate enabled={demoEnabled()} />
       <DemoCards overview={overview} />
 
       <PageScroll>

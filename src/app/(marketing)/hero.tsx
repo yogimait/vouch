@@ -27,8 +27,11 @@ export function Hero() {
   return (
     // Left-aligned, not centred: DESIGN_INTEL §6 item 7 is explicit, and the shipped page broke it.
     <section className="relative isolate flex min-h-dvh flex-col justify-center overflow-hidden px-6 pt-28 pb-28 sm:px-10">
+      {/* dpr={1}: at the device ratio this fragment shader was ~200M sin() a frame on a retina
+          laptop, for a blurred background at 40% opacity behind a scrim. Nothing survives a second
+          sample. Visibility gating and reduced motion live inside the component. */}
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-40">
-        <Ferrofluid colors={FLUID} speed={0.15} scale={1.7} glow={1.7} shimmer={0.35} rimWidth={0.26} opacity={0.8} mouseInteraction={false} />
+        <Ferrofluid dpr={1} colors={FLUID} speed={0.15} scale={1.7} glow={1.7} shimmer={0.35} rimWidth={0.26} opacity={0.8} mouseInteraction={false} />
       </div>
       {/* The fluid runs to the top edge; the copy needs an unlit floor to sit on. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-1/2 bg-gradient-to-t from-background via-background/55 to-transparent" />
