@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { MotionProvider } from "@/components/motion-provider";
 import "./globals.css";
 
 // The two faces Razorpay actually loads, both free on Google Fonts. See docs/DESIGN_INTEL.md §1.
@@ -21,7 +22,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`dark ${instrument.variable} ${interTight.variable} ${jetbrains.variable}`}>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        <MotionProvider>{children}</MotionProvider>
+      </body>
     </html>
   );
 }

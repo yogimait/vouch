@@ -44,12 +44,21 @@ const COLUMNS: Column<GateRow>[] = [
 export function GatePanel() {
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<GateReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  // try/finally, not a trailing setBusy: a throw used to leave the button disabled until a reload.
   async function run() {
-    setBusy(true);
-    const res = await fetch("/api/demo/gate", { method: "POST" });
-    setReport((await res.json()).data ?? null);
-    setBusy(false);
+    setBusy(true); setError(null);
+    try {
+      const res = await fetch("/api/demo/gate", { method: "POST" });
+      const body = await res.json();
+      if (body.data) setReport(body.data);
+      else setError(body.error?.code ?? body.message ?? "the run was refused");
+    } catch {
+      setError("the request never reached the server");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -58,6 +67,8 @@ export function GatePanel() {
         <RunButton onClick={run} busy={busy}>Run all fourteen</RunButton>
         <span className="text-sm text-fg-3">14 conditions × 15 attempts, straight into the engine</span>
       </div>
+
+      {error && <p className="mt-4 font-mono text-xs text-refuse">{error}</p>}
 
       {report && (
         <div className="mt-8">

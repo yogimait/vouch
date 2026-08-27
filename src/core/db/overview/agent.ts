@@ -33,8 +33,9 @@ export interface AgentOverview {
 }
 
 /**
- * Four concurrent round trips, because Supabase latency dominates this page. Balances follow in a
- * fifth: they need the authorization id, and the formula lives in @/core/ledger and is not restated.
+ * Five sequential round trips. They were concurrent until the pool deadlocked; the body below says
+ * why. Balances come last because they need the authorization id, and the formula lives in
+ * @/core/ledger and is not restated here.
  */
 export async function agentOverview(agentId: string): Promise<AgentOverview> {
   const db = getDb();

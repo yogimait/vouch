@@ -44,6 +44,22 @@ export function ScrollPanel({ title, count, children, bodyClassName }: { title: 
   );
 }
 
+/**
+ * Say it before the button is pressed, not after. Every demo endpoint is gated on DEMO_CONSOLE, and
+ * a gated deployment answers with an envelope the panels used to discard — so four buttons did
+ * nothing, four times, in silence.
+ */
+export function DemoGate({ enabled }: { enabled: boolean }) {
+  if (enabled) return null;
+
+  return (
+    <p className="mb-4 shrink-0 rounded-[3px] border border-escalate/40 px-4 py-3 text-sm text-escalate">
+      The demo console is off on this deployment, so every run here is refused with DEMO_DISABLED.
+      Set <span className="font-mono">DEMO_CONSOLE=1</span> in the environment to enable it.
+    </p>
+  );
+}
+
 export function StatTile({ label, value, accent }: { label: string; value: string; accent?: OutcomeValue }) {
   return (
     <Card

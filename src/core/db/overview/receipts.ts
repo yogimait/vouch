@@ -27,8 +27,8 @@ export interface ReceiptsOverview {
 }
 
 /**
- * Everything the four summary cards need, in four concurrent round trips rather than four
- * sequential ones. Supabase latency dominates this page; overlapping them is most of its speed.
+ * Everything the four summary cards need, in four sequential round trips. They ran concurrently
+ * once; the note in the body is the reason they no longer do.
  */
 export async function receiptsOverview(): Promise<ReceiptsOverview> {
   const db = getDb();

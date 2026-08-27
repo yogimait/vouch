@@ -8,7 +8,10 @@ import { Empty, PageHeading, ScrollPanel } from "../ui";
 export const dynamic = "force-dynamic";
 
 export default async function DecisionsPage() {
-  const [rows, overview] = await Promise.all([listDecisions(100), decisionsOverview()]);
+  // Sequential, not Promise.all: each holds a pooled connection for its whole chain, and the pool
+  // is twelve. See the same note in src/core/db/queries.ts — this is the layer that kept undoing it.
+  const rows = await listDecisions(100);
+  const overview = await decisionsOverview();
 
   return (
     <>

@@ -247,10 +247,12 @@ const Ferrofluid: React.FC<FerrofluidProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
+    // antialias off: this is one fullscreen triangle with no geometry edges to alias, so MSAA only
+    // bought a resolve pass per frame. The caller caps dpr — see the note at the hero's call site.
     const renderer = new Renderer({
       dpr: dpr ?? (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1),
       alpha: true,
-      antialias: true
+      antialias: false
     });
     rendererRef.current = renderer;
     const gl = renderer.gl;
@@ -300,13 +302,21 @@ const Ferrofluid: React.FC<FerrofluidProps> = ({
     const mesh = new Mesh(gl, { geometry, program });
     meshRef.current = mesh;
 
-    const resize = () => {
+    const resizeBuffers = () => {
       const rect = container.getBoundingClientRect();
       renderer.setSize(rect.width, rect.height);
       uniforms.iResolution.value = [gl.drawingBufferWidth, gl.drawingBufferHeight, 1];
     };
 
-    resize();
+    // Reduced motion gets one static frame; the fluid is a background, so a still one is honest.
+    const still = typeof window !== 'undefined'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const resize = () => {
+      resizeBuffers();
+      if (still && meshRef.current) renderer.render({ scene: meshRef.current });
+    };
+    resizeBuffers();
     const ro = new ResizeObserver(resize);
     ro.observe(container);
 
@@ -349,10 +359,32 @@ const Ferrofluid: React.FC<FerrofluidProps> = ({
         }
       }
     };
-    rafRef.current = requestAnimationFrame(loop);
+    /*
+     * Gated on visibility with a local, never with the `paused` prop: `paused` sits in this effect's
+     * dependency array, so driving it from scroll would tear the WebGL context down and rebuild it
+     * every time the hero left the viewport. The landing page is a full-height hero followed by four
+     * more sections, and this shader was still evaluating every pixel behind all of them.
+     */
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        if (!rafRef.current) rafRef.current = requestAnimationFrame(loop);
+      } else if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    });
+
+    if (still) {
+      renderer.render({ scene: mesh });
+    } else {
+      rafRef.current = requestAnimationFrame(loop);
+      io.observe(container);
+    }
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      io.disconnect();
       if (mouseInteraction) canvas.removeEventListener('pointermove', onPointerMove);
       ro.disconnect();
       if (canvas.parentElement === container) {
@@ -367,7 +399,9 @@ const Ferrofluid: React.FC<FerrofluidProps> = ({
       callIfFn(programRef.current, 'remove');
       callIfFn(geometryRef.current, 'remove');
       callIfFn(meshRef.current, 'remove');
-      callIfFn(rendererRef.current, 'destroy');
+      // ogl's Renderer has no destroy(), so the upstream callIfFn was a no-op and every unmount
+      // stranded a live context. Chrome caps them at ~16, after which the hero renders blank.
+      rendererRef.current?.gl.getExtension('WEBGL_lose_context')?.loseContext();
       programRef.current = null;
       geometryRef.current = null;
       meshRef.current = null;

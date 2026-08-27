@@ -1,6 +1,6 @@
 // The stage the demo is set on: what is delegated, what is on the shelf, what the gate has already
-// ruled, and what actually moved. Four round trips issued at once, because Supabase latency
-// dominates this page and queueing them is the difference between 300ms and a second.
+// ruled, and what actually moved. Four round trips, issued one at a time — see the note in the
+// body. They were concurrent, and concurrency at this layer is what exhausted the pool.
 import { sql } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import {

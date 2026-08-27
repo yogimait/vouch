@@ -1,4 +1,5 @@
-// Everything /metrics draws, in three concurrent round trips rather than nine sequential ones.
+// Everything /metrics draws, in three sequential round trips rather than nine. Three, not one, is
+// the win here; issuing them at once is what the note in the body forbids.
 // Money is cast ::text and re-parsed so the driver cannot round a bigint.
 import { sql } from "drizzle-orm";
 import { getDb } from "@/core/db";

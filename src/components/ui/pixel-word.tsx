@@ -167,9 +167,19 @@ export function PixelWord({ word, colour, cell = 13, widest, className }: Props)
         }
       }
       ctx.globalAlpha = 1;
-
-      raf = requestAnimationFrame(draw);
     };
+
+    const tick = () => {
+      draw();
+      raf = requestAnimationFrame(tick);
+    };
+
+    // Reduced motion gets one frame and no listeners. Cells are seeded resolved above, so the word
+    // is fully drawn; VerdictPixels stops cycling under the same preference, so it cannot go stale.
+    if (still) {
+      draw();
+      return;
+    }
 
     const move = (e: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -177,14 +187,12 @@ export function PixelWord({ word, colour, cell = 13, widest, className }: Props)
       pointer.y = e.clientY - rect.top;
     };
     window.addEventListener("pointermove", move);
-
-    if (still) draw();
-    else raf = requestAnimationFrame(draw);
+    raf = requestAnimationFrame(tick);
 
     // A character grid at 60fps is not free, and a backgrounded tab must not pay for it.
     const visibility = () => {
       cancelAnimationFrame(raf);
-      if (!document.hidden && !still) raf = requestAnimationFrame(draw);
+      if (!document.hidden) raf = requestAnimationFrame(tick);
     };
     document.addEventListener("visibilitychange", visibility);
 

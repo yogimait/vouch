@@ -20,31 +20,46 @@ export function BuyPanel({ items }: { items: Item[] }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<BuyResult | null>(null);
   const [confirmed, setConfirmed] = useState<Confirmation | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  // `body.data ?? null` swallowed every refusal: DEMO_DISABLED landed as no result and no message.
+  // try/finally, not a trailing setBusy, so a throw cannot leave the button disabled until a reload.
   async function run() {
-    setBusy(true);
+    setBusy(true); setError(null);
     setResult(null);
     setConfirmed(null);
-    const res = await fetch("/api/demo/buy", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        sku, qty,
-        discountCode: discountCode.trim() || null,
-        claimedTotalPaise: claimed.trim() || null,
-        agent: frozen ? "frozen" : "shopbot",
-      }),
-    });
-    const body = await res.json();
-    setResult(body.data ?? null);
-    setBusy(false);
+    try {
+      const res = await fetch("/api/demo/buy", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sku, qty,
+          discountCode: discountCode.trim() || null,
+          claimedTotalPaise: claimed.trim() || null,
+          agent: frozen ? "frozen" : "shopbot",
+        }),
+      });
+      const body = await res.json();
+      if (body.data) setResult(body.data);
+      else setError(body.error?.code ?? body.message ?? "the run was refused");
+    } catch {
+      setError("the request never reached the server");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function confirm(orderId: string) {
-    setBusy(true);
-    const res = await fetch(`/api/orders/${orderId}/confirm`, { method: "POST" });
-    setConfirmed((await res.json()).data ?? null);
-    setBusy(false);
+    setBusy(true); setError(null);
+    try {
+      const body = await (await fetch(`/api/orders/${orderId}/confirm`, { method: "POST" })).json();
+      if (body.data) setConfirmed(body.data);
+      else setError(body.error?.code ?? body.message ?? "Razorpay could not be asked");
+    } catch {
+      setError("the request never reached the server");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const item = items.find((i) => i.sku === sku);
@@ -103,6 +118,8 @@ export function BuyPanel({ items }: { items: Item[] }) {
         <RunButton onClick={run} busy={busy}>Try to buy</RunButton>
         {item && <span className="text-sm text-fg-3">list price {item.price} each</span>}
       </div>
+
+      {error && <p className="mt-4 font-mono text-xs text-refuse">{error}</p>}
 
       {result && (
         <div className="mt-8 border-t border-hairline pt-6">
