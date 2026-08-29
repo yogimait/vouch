@@ -19,6 +19,9 @@ import { formatInr } from "@/core/money";
 import { confirmOrder } from "@/core/orders/confirm";
 
 const FORCE_FAILURE = process.argv.includes("--fail");
+// Env, not a flag: demo:1 shells out to this script and inherits the environment, so one variable
+// turns recording on for the whole chain without threading an argument through.
+const RECORD = process.env.VOUCH_RECORD === "1" || process.argv.includes("--video");
 
 // --fail pays with an INTERNATIONAL card. This business is domestic-only, so Razorpay rejects it
 // with "this business accepts domestic (Indian) card payments only" — a real failed payment record.
@@ -64,9 +67,12 @@ async function type(frame: Frame, selector: string, value: string): Promise<void
     // The walk revisits the same screen, so a field that already holds a value is left alone —
     // otherwise the second pass appends and the card number becomes 32 digits.
     if ((await input.inputValue()).trim()) return;
-    await input.click({ timeout: 2500 });
+    // focus(), not click(). The contact sheet Razorpay shipped on 26 Aug 2026 never satisfies
+    // Playwright's pointer hit-test: the trace shows 48 clicks, every one timing out, while every
+    // read succeeded. focus() runs no hit-test. Measured at 517ms against the live sheet.
+    await input.focus({ timeout: 8000 });
     // Typed, not filled: Razorpay's validators listen per keystroke and reject a programmatic set.
-    await input.pressSequentially(value, { delay: 40 });
+    await frame.page().keyboard.type(value, { delay: 40 });
   } catch {
     // Absent or not editable this round. The loop comes back.
   }
@@ -87,15 +93,27 @@ const FIELDS: [string, string][] = [
   ['input[placeholder*="Email" i]', CARD.email],
 ];
 
+// Dismissals before submits, and the order is the whole fix. An interstitial has to be closed
+// before the form underneath it can advance, and "Continue" sits earlier in the DOM than
+// "Maybe later" — so one regex over both groups force-clicks the buried Continue, reports success,
+// and never reaches the dismissal. That stalled the walk on the RBI save-card modal for eight rounds.
+const BUTTON_GROUPS = [/^(maybe later|not now|skip)/i, /^(pay|proceed|continue)/i];
+
 /** Several Continue buttons exist at once and most are behind the overlay. Click one that works. */
 async function advance(frame: Frame): Promise<boolean> {
-  const buttons = frame.getByRole("button", { name: /^(pay|proceed|continue|maybe later|not now|skip)/i });
-  for (let i = 0; i < await buttons.count(); i++) {
-    try {
-      await buttons.nth(i).click({ timeout: 2500 });
-      return true;
-    } catch {
-      // Covered by the backdrop, or disabled. Try the next one.
+  for (const name of BUTTON_GROUPS) {
+    const buttons = frame.getByRole("button", { name });
+    for (let i = 0; i < await buttons.count(); i++) {
+      const button = buttons.nth(i);
+      try {
+        if (!(await button.isVisible())) continue;
+        // force: the same hit-test that stalls the fields stalls the button. Safe because
+        // isVisible() already ruled out the hidden duplicates behind the sheet.
+        await button.click({ timeout: 2500, force: true });
+        return true;
+      } catch {
+        // Detached mid-click, or disabled. Try the next one.
+      }
     }
   }
   return false;
@@ -183,7 +201,11 @@ async function main(): Promise<void> {
     }
     console.error(`${order.id} ${formatInr(order.amountPaise)} -> ${order.authorizationUrl}`);
 
-    const ctx = await browser.newContext();
+    // VOUCH_RECORD=1 also writes a .webm of the walk. The trace proves it to an engineer; the
+    // video proves it to everyone else, which is what a submission needs.
+    const ctx = await browser.newContext(
+      RECORD ? { recordVideo: { dir: "evidence/video", size: { width: 1280, height: 720 } } } : {},
+    );
     // The trace is itself evidence: it shows a device, not a person, completing the payment.
     await ctx.tracing.start({ screenshots: true, snapshots: true });
     const page = await ctx.newPage();
@@ -195,7 +217,14 @@ async function main(): Promise<void> {
     }
 
     await ctx.tracing.stop({ path: `evidence/device-${order.id}.zip` });
+    const video = page.video();
+    // Only final once the context closes, so the rename has to wait for it.
     await ctx.close();
+    if (video) {
+      const saved = `evidence/video/device-${order.id}.webm`;
+      await video.saveAs(saved).catch(() => {});
+      console.error(`   video ${saved}`);
+    }
 
     // No webhook reached us here, so the receipt will say mode:"polled". Never claim a signature
     // we did not verify.
