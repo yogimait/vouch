@@ -16,7 +16,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 /** Percentages only — this is layout, not money maths. Every displayed amount stays bigint. */
-function pct(part: bigint, whole: bigint): number {
+export function pct(part: bigint, whole: bigint): number {
   if (whole <= 0n) return 0;
   return Number((part * 10000n) / whole) / 100;
 }
@@ -32,7 +32,7 @@ export function CapacityBar({ maxPaise, debitedPaise, heldPaise, availablePaise 
         <span className="label">of {formatInr(maxPaise)}</span>
       </div>
 
-      <div className="flex h-14 w-full overflow-hidden rounded border border-hairline">
+      <div className="flex h-14 w-full overflow-hidden rounded-[2px] border border-hairline">
         <div
           className="bg-primary transition-[width] duration-[450ms] ease-overshoot"
           style={{ width: `${debited}%` }}
@@ -67,16 +67,13 @@ export function CapacityBar({ maxPaise, debitedPaise, heldPaise, availablePaise 
 /** One mandate in full: who delegated it, what is left, and the scope the engine reads. */
 export function MandateDetail({ m }: { m: MandateRow }) {
   return (
-    <article className="border-b border-hairline px-4 py-6 last:border-b-0">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <Id value={m.id} head={12} tail={7} />
-          <span className={`text-xs tracking-wide uppercase ${STATUS_TONE[m.status] ?? "text-fg-2"}`}>{m.status}</span>
-          {m.agentStatus === "FROZEN" && <span className="text-xs tracking-wide text-refuse uppercase">agent frozen</span>}
-        </div>
-        <span className="text-sm text-fg-2">
-          {m.agentName} — acting for <span className="font-mono">{m.principalRef}</span>
-        </span>
+    <article className="pb-6">
+      {/* The agent and the principal moved up to the page heading; what is left here is the record. */}
+      <div className="mb-4 flex flex-wrap items-baseline gap-3">
+        <Id value={m.id} head={12} tail={7} />
+        <span className={`text-xs tracking-wide uppercase ${STATUS_TONE[m.status] ?? "text-fg-2"}`}>{m.status}</span>
+        {m.agentStatus === "FROZEN" && <span className="text-xs tracking-wide text-refuse uppercase">agent frozen</span>}
+        {m.frozenReason && <span className="text-xs text-fg-3">{m.frozenReason}</span>}
       </div>
 
       <CapacityBar
@@ -91,7 +88,7 @@ export function MandateDetail({ m }: { m: MandateRow }) {
           <h2 className="label mb-2">The grant</h2>
           <Field label="granted_by">{m.grantedBy}</Field>
           <Field label="granted_via">{m.grantedVia}</Field>
-          <Field label="granted_at">{m.grantedAt.toISOString().slice(0, 16).replace("T", " ")}</Field>
+          <Field label="granted_at">{m.grantedAt.toISOString().slice(0, 16).replace("T", " ")} UTC</Field>
           <Field label="token_type">{m.tokenType}</Field>
           <Field label="frequency">{m.frequency}</Field>
           <Field label="signature"><Id value={m.grantSignature} /></Field>

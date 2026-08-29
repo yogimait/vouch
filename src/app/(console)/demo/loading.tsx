@@ -34,7 +34,7 @@ export default function DemoLoading() {
       <div className="flex-1 lg:min-h-0 lg:overflow-hidden">
         <div className="mt-6 mb-12 flex items-center justify-between gap-4 border-y border-hairline py-4">
           <Skeleton className="h-4 w-96 max-w-full rounded-[2px]" />
-          <Skeleton className="h-9 w-36 shrink-0 rounded-full" />
+          <Skeleton className="h-9 w-36 shrink-0 rounded-[2px]" />
         </div>
 
         {[0, 1].map((i) => (

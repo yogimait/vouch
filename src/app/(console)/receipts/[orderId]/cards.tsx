@@ -20,9 +20,10 @@ function money(block: Block, key: string): string {
   return typeof v === "string" && /^\d+$/.test(v) ? formatInr(BigInt(v)) : MISSING;
 }
 
+/** Marked UTC, not localised: these are the record's own stored values, quoted as they were signed. */
 function moment(block: Block, key: string): string {
   const v = block[key];
-  return typeof v === "string" ? v.slice(0, 16).replace("T", " ") : MISSING;
+  return typeof v === "string" ? `${v.slice(0, 16).replace("T", " ")} UTC` : MISSING;
 }
 
 function Truth({ v }: { v: Verification }) {

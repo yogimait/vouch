@@ -32,13 +32,13 @@ export default function AgentLoading() {
 
       <div className="mt-4 shrink-0">
         <div className="mb-3 flex gap-2">
-          {[16, 20].map((w) => <Skeleton key={w} className="h-7 rounded-full" style={{ width: `${w * 4}px` }} />)}
+          {[16, 20].map((w) => <Skeleton key={w} className="h-7 rounded-[2px]" style={{ width: `${w * 4}px` }} />)}
         </div>
         <div className="mb-3 flex flex-wrap gap-2">
-          {[28, 32, 40, 30].map((w) => <Skeleton key={w} className="h-7 rounded-full" style={{ width: `${w * 4}px` }} />)}
+          {[28, 32, 40, 30].map((w) => <Skeleton key={w} className="h-7 rounded-[2px]" style={{ width: `${w * 4}px` }} />)}
         </div>
         <Skeleton className="h-[4.5rem] w-full rounded-[3px]" />
-        <Skeleton className="mt-3 h-9 w-28 rounded-full" />
+        <Skeleton className="mt-3 h-9 w-28 rounded-[2px]" />
       </div>
 
       <section className="mt-3 flex flex-1 flex-col rounded-[3px] border border-hairline lg:min-h-0">

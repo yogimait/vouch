@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import type { BuyResult } from "@/demo/buy";
 import { RunButton, Note, Step } from "./panel";
 
@@ -72,7 +73,7 @@ export function BuyPanel({ items }: { items: Item[] }) {
           <select
             value={sku}
             onChange={(e) => setSku(e.target.value)}
-            className="mt-1 w-full rounded border border-hairline bg-raised px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-[2px] border border-hairline bg-raised px-3 py-2 text-sm"
           >
             {items.map((i) => (
               <option key={i.sku} value={i.sku}>{i.sku} · {i.name} · {i.price} · {i.category}</option>
@@ -85,26 +86,26 @@ export function BuyPanel({ items }: { items: Item[] }) {
           <input
             type="number" min={1} max={20} value={qty}
             onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-            className="mt-1 w-full rounded border border-hairline bg-raised px-3 py-2 font-mono text-sm"
+            className="mt-1 w-full rounded-[2px] border border-hairline bg-raised px-3 py-2 font-mono text-sm"
           />
         </label>
       </div>
 
-      <div className="mt-6 rounded border border-dashed border-hairline p-4">
+      <div className="mt-6 rounded-[2px] border border-dashed border-hairline p-4">
         <div className="label mb-3">the two places an agent could lie</div>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block">
             <span className="text-xs text-fg-3">invent a discount code</span>
             <input
               value={discountCode} onChange={(e) => setDiscount(e.target.value)} placeholder="PARTNER25"
-              className="mt-1 w-full rounded border border-hairline bg-raised px-3 py-2 font-mono text-sm"
+              className="mt-1 w-full rounded-[2px] border border-hairline bg-raised px-3 py-2 font-mono text-sm"
             />
           </label>
           <label className="block">
             <span className="text-xs text-fg-3">claim a total, in paise</span>
             <input
               value={claimed} onChange={(e) => setClaimed(e.target.value)} placeholder="100000"
-              className="mt-1 w-full rounded border border-hairline bg-raised px-3 py-2 font-mono text-sm"
+              className="mt-1 w-full rounded-[2px] border border-hairline bg-raised px-3 py-2 font-mono text-sm"
             />
           </label>
         </div>
@@ -133,7 +134,7 @@ export function BuyPanel({ items }: { items: Item[] }) {
           </ul>
 
           {result.reasons.map((r, i) => (
-            <div key={i} className="mt-4 rounded border border-hairline p-4">
+            <div key={i} className="mt-4 rounded-[2px] border border-hairline p-4">
               <div className="font-mono text-xs text-refuse">{r.code}{r.rule ? ` · ${r.rule}` : ""}</div>
               <p className="mt-1 text-sm text-fg-2">{r.message}</p>
               {r.observed !== undefined && (
@@ -144,12 +145,13 @@ export function BuyPanel({ items }: { items: Item[] }) {
 
           {result.payUrl && (
             <div className="mt-6 flex flex-wrap items-center gap-4">
-              <a
-                href={result.payUrl} target="_blank" rel="noreferrer"
-                className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-black hover:bg-primary/85"
-              >
-                {result.outcome === "ESCALATE" ? "Open the link a human would get" : "Authorize this payment"}
-              </a>
+              {/* The shared Button, not a hand-styled anchor: this is the control that spends money,
+                  and it was the one control in the app not following the button rules. */}
+              <Button asChild className="rounded-[2px]">
+                <a href={result.payUrl} target="_blank" rel="noreferrer">
+                  {result.outcome === "ESCALATE" ? "Open the link a human would get" : "Authorize this payment"}
+                </a>
+              </Button>
               <RunButton tone="quiet" busy={busy} onClick={() => confirm(result.orderId!)}>I have paid — check with Razorpay</RunButton>
             </div>
           )}

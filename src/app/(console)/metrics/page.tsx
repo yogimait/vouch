@@ -2,7 +2,8 @@ import { gateBreakdown } from "@/core/db/queries";
 import { metricsOverview } from "@/core/db/overview/metrics";
 import { GateTable } from "./gate";
 import { MetricCards } from "./cards";
-import { PageHeading, ScrollPanel } from "../ui";
+import { ScrollPanel } from "../ui";
+import { Summary } from "../summary";
 
 // Reads live data on every request. Without this Next prerenders it and bakes the seed in.
 export const dynamic = "force-dynamic";
@@ -15,11 +16,12 @@ export default async function MetricsPage() {
 
   return (
     <>
-      <PageHeading
+      <Summary
         title="Metrics"
         subtitle="Two cards of gate numbers, then two of settlement — in that order, and never as one figure."
-      />
-      <MetricCards overview={overview} />
+      >
+        <MetricCards overview={overview} />
+      </Summary>
 
       <ScrollPanel title="Every gate decision, grouped by source, class and outcome" count={gate.length}>
         <GateTable rows={gate} />

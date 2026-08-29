@@ -2,9 +2,10 @@ import type { MisquoteRow } from "@/core/db/queries";
 import { DataTable, type Column } from "@/components/data-table";
 import { formatInr } from "@/core/money";
 import { Empty } from "../ui";
+import { When } from "../when";
 
 const COLUMNS: Column<MisquoteRow>[] = [
-  { header: "Time", cell: (m) => <span className="font-mono text-xs">{m.createdAt.toISOString().slice(11, 19)}</span> },
+  { header: "When", cell: (m) => <When at={m.createdAt} /> },
   { header: "Agent", cell: (m) => m.agentName },
   { header: "Kind", cell: (m) => <span className="font-mono text-xs text-refuse">{m.kind}</span> },
   {
