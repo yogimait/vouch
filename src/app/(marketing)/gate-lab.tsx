@@ -126,7 +126,7 @@ function Panel({ facts, sku, setSku, qty, setQty, result, total }: PanelProps) {
             onClick={() => setSku(item.sku)}
             title={`${item.name} · ${formatInr(BigInt(item.unitPricePaise))}`}
             className={cn(
-              "feedback rounded-full border border-hairline px-3 py-1 font-mono text-[11px]",
+              "feedback rounded-[2px] border border-hairline px-3 py-1 font-mono text-[11px]",
               item.sku === sku ? "border-primary/60 bg-primary/10 text-primary" : "text-fg-3 hover:text-fg-2",
             )}
           >

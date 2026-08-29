@@ -1,42 +1,74 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import type { AgentOverview } from "@/core/db/overview/agent";
 import type { Preset } from "@/demo/instructions";
 import { TextType } from "@/components/ui/text-type";
-import { ScrollPanel } from "../ui";
+import { PageScroll, ScrollPanel } from "../ui";
 import { AgentCards, type RunResult } from "./cards";
 import { ChipGroup } from "./chips";
-import { Step, type StepEvent } from "./transcript";
-import { Decisions } from "./decisions";
-
-interface Run { model: string; temperature: number; agent: string }
+import { RunLog, type PastRun } from "./log";
+import { Result } from "./result";
 
 const WHO = [
   { id: "shopbot", label: "ShopBot" },
   { id: "frozen", label: "FrozenBot" },
 ];
 
-const NO_RUNS: RunResult[] = [];
+const NOTHING: RunResult = { mandate: null, decisions: [], misquotes: [] };
 
-export function AgentConsole({ presets, overviews }: { presets: Preset[]; overviews: Record<string, AgentOverview> }) {
-  const [instruction, setInstruction] = useState(presets[0].instruction);
-  const [who, setWho] = useState("shopbot");
-  const [steps, setSteps] = useState<StepEvent[]>([]);
-  const [run, setRun] = useState<Run | null>(null);
-  // Keyed by agent: switching the chip must not show ShopBot's spending on FrozenBot's card.
-  const [history, setHistory] = useState<Record<string, RunResult[]>>({});
-  // The cards count every run; the panel below only ever shows the transcript's own.
-  const [shown, setShown] = useState<RunResult | null>(null);
-  const [verdict, setVerdict] = useState<string | null>(null);
-  const [orderId, setOrderId] = useState<string | null>(null);
+/** A transcript is ~12kB. Ten is a session's worth and nowhere near the storage ceiling. */
+const KEEP = 10;
+
+/**
+ * The runs survive leaving the page. sessionStorage, not localStorage: a run belongs to the tab it
+ * happened in, and last week's transcript above today's mandate would be a lie.
+ */
+const KEY = "vouch.agent.transcript";
+
+interface Saved { instruction: string; who: string; past: PastRun[] }
+
+/** Never fires: the only question is server render versus client render, and that changes once. */
+const NEVER = () => () => {};
+
+function useSaved(): Saved | null {
+  const raw = useSyncExternalStore(NEVER, () => sessionStorage.getItem(KEY), () => null);
+  return useMemo(() => (raw ? JSON.parse(raw) as Saved : null), [raw]);
+}
+
+interface Props { presets: Preset[]; overviews: Record<string, AgentOverview> }
+
+export function AgentConsole(props: Props) {
+  const saved = useSaved();
+  // Remounted once, at hydration. Lazy initializers are the only place restored state can land
+  // without either a hydration mismatch or a setState inside an effect.
+  return <Console {...props} saved={saved} key={saved ? "restored" : "fresh"} />;
+}
+
+function Console({ presets, overviews, saved }: Props & { saved: Saved | null }) {
+  const [instruction, setInstruction] = useState(saved?.instruction ?? presets[0].instruction);
+  const [who, setWho] = useState(saved?.who ?? "shopbot");
+  // Newest first, so index 0 is the run that just finished and the log reads top-down.
+  const [past, setPast] = useState<PastRun[]>(saved?.past ?? []);
+  const [selected, setSelected] = useState<number | null>(saved?.past?.length ? 0 : null);
+  // The run streaming right now. It outranks the selection, so a run always shows itself.
+  const [live, setLive] = useState<PastRun | null>(null);
+  // Counted, not derived from lengths: KEEP caps `past`, so a full log would report no new runs.
+  const [freshCount, setFreshCount] = useState(0);
   const [running, setRunning] = useState(false);
   const source = useRef<EventSource | null>(null);
+  const building = useRef<PastRun | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+
+  // Written only between runs, and only once there is something to write. Both halves matter: on a
+  // reload this mounts empty first and would otherwise erase the saved runs before React re-reads
+  // the store and remounts with them.
+  useEffect(() => {
+    if (running || past.length === 0) return;
+    sessionStorage.setItem(KEY, JSON.stringify({ instruction, who, past }));
+  }, [running, instruction, who, past]);
 
   function stop() {
     source.current?.close();
@@ -44,131 +76,148 @@ export function AgentConsole({ presets, overviews }: { presets: Preset[]; overvi
     setRunning(false);
   }
 
+  /** State and ref together: the ref is what the "done" handler reads, free of a stale closure. */
+  function build(next: PastRun) {
+    building.current = next;
+    setLive(next);
+  }
+
+  function select(i: number) {
+    building.current = null;
+    setLive(null);
+    setSelected(i);
+  }
+
   function start() {
     stop();
-    setSteps([]); setVerdict(null); setOrderId(null); setRun(null); setShown(null); setRunning(true);
+    building.current = null;
+    setLive(null); setSelected(null); setRunning(true);
+
+    // The cards above are the setup and worth seeing before the errand is sent; the transcript is
+    // what happens next. Pressing the button is the moment the page should move between them.
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    panel.current?.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" });
 
     // Captured now, so a chip clicked mid-run cannot file this run's rows under the other agent.
     const acting = who;
-    const es = new EventSource(`/api/demo/agent?agent=${acting}&instruction=${encodeURIComponent(instruction)}`);
+    const asked = instruction;
+    const blank: PastRun = {
+      at: Date.now(), agent: acting, instruction: asked,
+      model: "", temperature: 0, steps: [], verdict: "", orderId: null, result: NOTHING,
+    };
+
+    const es = new EventSource(`/api/demo/agent?agent=${acting}&instruction=${encodeURIComponent(asked)}`);
     source.current = es;
     es.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === "start") setRun({ model: data.model, temperature: data.temperature, agent: data.agent });
-      if (data.type === "step") setSteps((prior) => [...prior, data]);
+      const now = building.current ?? blank;
+
+      if (data.type === "start") build({ ...now, model: data.model, temperature: data.temperature });
+      if (data.type === "step") build({ ...now, steps: [...now.steps, data] });
       if (data.type === "done") {
-        const result: RunResult = {
-          mandate: data.mandate ?? null,
-          decisions: data.decisions ?? [],
-          misquotes: data.misquotes ?? [],
+        const done: PastRun = {
+          ...now,
+          verdict: data.text || "finished without a closing statement",
+          orderId: data.orderId ?? null,
+          result: { mandate: data.mandate ?? null, decisions: data.decisions ?? [], misquotes: data.misquotes ?? [] },
         };
-        setShown(result);
-        setHistory((prior) => ({ ...prior, [acting]: [...(prior[acting] ?? []), result] }));
-        setOrderId(data.orderId ?? null);
-        setVerdict(data.text || "finished without a closing statement");
+        setPast((prior) => [done, ...prior].slice(0, KEEP));
+        setFreshCount((n) => n + 1);
+        setSelected(0);
+        building.current = null;
+        setLive(null);
         stop();
       }
-      if (data.type === "error") { setVerdict(`failed: ${data.message}`); stop(); }
+      // Kept live rather than logged: a stream that never answered is not a run the guard ruled on.
+      if (data.type === "error") { build({ ...now, verdict: `failed: ${data.message}` }); stop(); }
     };
     // Without this a dropped connection reconnects on its own and silently starts a second run.
     es.onerror = () => stop();
   }
 
-  const misquotes = shown?.misquotes ?? [];
-  const decisions = shown?.decisions ?? [];
+  const view = live ?? (selected === null ? null : past[selected] ?? null);
+  // Only runs made since this mount. The rest are already counted in the overview the server sent.
+  const fresh = past.slice(0, Math.min(freshCount, past.length))
+    .filter((r) => r.agent === who)
+    .map((r) => r.result);
 
   return (
-    <>
-      <AgentCards overview={overviews[who]} runs={history[who] ?? NO_RUNS} />
+    <PageScroll>
+      <AgentCards overview={overviews[who]} runs={fresh} />
 
-      <div className="mt-4 shrink-0">
-        <ChipGroup label="acting as" chips={WHO} selected={who} onSelect={setWho} />
-        <ChipGroup
-          label="try"
-          chips={presets.map((p) => ({ id: p.instruction, label: p.label, hint: p.expect }))}
-          selected={instruction}
-          onSelect={setInstruction}
-        />
+      {/* Composer left, result right. Stacked, the result took what the cards and the composer left
+          it — 44px of body at 760px, for the one thing this page is about. */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-[23rem_minmax(0,1fr)]">
+        <div className="flex flex-col gap-4">
+          <div>
+            <ChipGroup label="acting as" chips={WHO} selected={who} onSelect={setWho} />
+            <ChipGroup
+              label="try"
+              chips={presets.map((p) => ({ id: p.instruction, label: p.label, hint: p.expect }))}
+              selected={instruction}
+              onSelect={setInstruction}
+            />
 
-        <Textarea
-          value={instruction}
-          onChange={(e) => setInstruction(e.target.value)}
-          rows={2}
-          maxLength={2000}
-          placeholder="Tell the agent what to buy."
-          className="bg-raised p-4 text-sm leading-relaxed"
-        />
+            {/* The button sits in the composer rather than under it: as its own row it pushed the
+                page's primary action 31px below the fold on a 760px screen. */}
+            <div className="relative">
+              <Textarea
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder="Tell the agent what to buy."
+                className="bg-raised p-4 pb-14 text-sm leading-relaxed"
+              />
+              <div className="absolute inset-x-3 bottom-3 flex items-center justify-end gap-3">
+                {running && <span className="mr-auto text-xs text-fg-3">working…</span>}
+                <Button
+                  type="button"
+                  onClick={running ? stop : start}
+                  disabled={!instruction.trim()}
+                  variant={running ? "outline" : "default"}
+                  className="rounded-[2px]"
+                >
+                  {running ? "Stop" : "Send it"}
+                </Button>
+              </div>
+            </div>
+            {view?.model && (
+              <p className="mt-3 font-mono text-xs text-fg-3">{view.model} · temperature {view.temperature}</p>
+            )}
+          </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-4">
-          <Button
-            type="button"
-            onClick={running ? stop : start}
-            disabled={!instruction.trim()}
-            variant={running ? "outline" : "default"}
-            className="rounded-full"
+          <RunLog runs={past} selected={live ? null : selected} onSelect={select} />
+        </div>
+
+        <div ref={panel} className="flex scroll-mt-2 flex-col">
+          <ScrollPanel
+            title="its reasoning, its tool calls, and the merchant's answers"
+            count={view?.steps.length ?? 0}
+            bodyClassName="px-4 py-4"
+            className="mt-0 lg:min-h-[34rem]"
           >
-            {running ? "Stop" : "Send it"}
-          </Button>
-          {run && <span className="font-mono text-xs text-fg-3">{run.model} · temperature {run.temperature}</span>}
-          {running && <span className="text-xs text-fg-3">working…</span>}
+            {view ? (
+              <Result run={view} />
+            ) : (
+              <div className="rounded-[3px] border border-dashed border-hairline px-6 py-6 text-center">
+                <p className="text-sm text-fg-2">Nothing has run yet. Pick an errand on the left, or write your own.</p>
+                {/* The real preset instructions, typed — every one of them is a chip you can press. */}
+                <TextType
+                  as="p"
+                  text={presets.map((p) => p.instruction)}
+                  className="mx-auto mt-3 max-w-[64ch] font-mono text-xs text-primary"
+                  typingSpeed={26}
+                  deletingSpeed={12}
+                  pauseDuration={2600}
+                  variableSpeed={{ min: 18, max: 46 }}
+                  startOnVisible
+                />
+              </div>
+            )}
+          </ScrollPanel>
         </div>
       </div>
-
-      <ScrollPanel title="its reasoning, its tool calls, and the merchant's answers" count={steps.length} bodyClassName="px-4 py-4">
-        <>
-          {steps.length === 0 && !verdict ? (
-            <div className="rounded-[3px] border border-dashed border-hairline px-6 py-6 text-center">
-              <p className="text-sm text-fg-2">Nothing has run yet. Pick an errand above, or write your own.</p>
-              {/* The real preset instructions, typed — every one of them is a chip you can press. */}
-              <TextType
-                as="p"
-                text={presets.map((p) => p.instruction)}
-                className="mx-auto mt-3 max-w-[64ch] font-mono text-xs text-primary"
-                typingSpeed={26}
-                deletingSpeed={12}
-                pauseDuration={2600}
-                variableSpeed={{ min: 18, max: 46 }}
-                startOnVisible
-              />
-            </div>
-          ) : (
-            <ol>{steps.map((s) => <Step key={s.index} step={s} />)}</ol>
-          )}
-
-          {decisions.length > 0 && <Decisions rows={decisions} />}
-
-          {misquotes.length > 0 && (
-            <Card className="mt-8 gap-0 border-refuse/40 p-5">
-              <div className="label mb-3 text-refuse">it tried to state a price the merchant never signed · {misquotes.length}</div>
-              {misquotes.map((m, i) => (
-                <div key={i} className="border-t border-hairline py-3 first:border-t-0 first:pt-0">
-                  <span className="font-mono text-xs">{m.kind}</span>
-                  {m.code && <span className="ml-3 text-sm">invented <span className="font-mono text-refuse">{m.code}</span></span>}
-                  {m.claimed && <span className="ml-3 text-sm">claimed {m.claimed} against a signed {m.signed}</span>}
-                </div>
-              ))}
-            </Card>
-          )}
-
-          {verdict && (
-            <section className="mt-8">
-              <Separator className="mb-6" />
-              <div className="label mb-2">what it reported back</div>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap text-fg-2">{verdict}</p>
-              <div className="mt-5 flex flex-wrap gap-5 text-xs">
-                <Link href="/decisions" className="text-primary hover:underline">see the decision it produced</Link>
-                {orderId && <Link href={`/pay/${orderId}`} className="text-primary hover:underline">authorize the payment</Link>}
-                {orderId && <Link href={`/receipts/${orderId}`} className="text-primary hover:underline">its receipt</Link>}
-              </div>
-              {misquotes.length === 0 && (
-                <p className="mt-4 text-xs text-fg-3">
-                  It stayed honest this run. That is a real result, not a failure — temperature is 0.7, so send it again for another sample.
-                </p>
-              )}
-            </section>
-          )}
-        </>
-      </ScrollPanel>
-    </>
+    </PageScroll>
   );
 }

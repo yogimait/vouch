@@ -34,8 +34,10 @@ export function ChipGroup({
           aria-pressed={c.id === selected}
           onClick={() => onSelect(c.id)}
           className={cn(
-            "h-7 rounded-full text-xs font-normal",
-            c.id === selected ? "border-primary/50 text-primary" : "text-fg-3",
+            "feedback h-7 rounded-[2px] border px-3 text-xs font-normal",
+            c.id === selected
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-hairline text-fg-3 hover:border-fg-3 hover:text-fg-2",
           )}
         >
           {c.label}

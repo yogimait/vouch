@@ -3,9 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import DecryptedText from "@/components/ui/decrypted-text";
 import type { Column } from "@/components/data-table";
 import { asMoney, Id, latency, Money, Outcome } from "../ui";
+import { When } from "../when";
 
 export const DECISION_COLUMNS: Column<DecisionRow>[] = [
-  { header: "Time", cell: (d) => <span className="font-mono text-xs">{d.createdAt.toISOString().slice(11, 19)}</span> },
+  { header: "When", cell: (d) => <When at={d.createdAt} /> },
   {
     header: "Agent",
     cell: (d) => (

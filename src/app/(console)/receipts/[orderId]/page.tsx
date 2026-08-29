@@ -2,8 +2,10 @@ import Link from "next/link";
 import { orderItem } from "@/core/db/queries";
 import type { ReceiptBody } from "@/core/receipts/build";
 import { verifyStored } from "@/core/receipts/verify";
+import { demoEnabled } from "@/demo/route";
 import { ReceiptFacts } from "./cards";
 import { Blocks } from "../blocks";
+import { TamperControl } from "./tamper";
 import { PageHeading, ScrollPanel } from "../../ui";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +38,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ orderI
           Export it with <span className="font-mono">npm run receipt export {orderId}</span> — the bundle carries
           the public key, so it verifies with no database, no keys and no network.
         </p>
+        <TamperControl orderId={orderId} enabled={demoEnabled()} />
       </ScrollPanel>
     </>
   );

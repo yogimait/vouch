@@ -42,21 +42,21 @@ export function ReceiptPanel({ settled }: { settled: Settled[] }) {
         <label className="block">
           <span className="label">receipt</span>
           <select value={orderId} onChange={(e) => setOrderId(e.target.value)}
-            className="mt-1 w-full rounded border border-hairline bg-raised px-3 py-2 text-sm">
+            className="mt-1 w-full rounded-[2px] border border-hairline bg-raised px-3 py-2 text-sm">
             {settled.map((s) => <option key={s.orderId} value={s.orderId}>{s.label}</option>)}
           </select>
         </label>
         <label className="block">
           <span className="label">field to alter</span>
           <select value={path} onChange={(e) => setPath(e.target.value)}
-            className="mt-1 w-full rounded border border-hairline bg-raised px-3 py-2 text-sm">
+            className="mt-1 w-full rounded-[2px] border border-hairline bg-raised px-3 py-2 text-sm">
             {TAMPER_TARGETS.map((t) => <option key={t.path} value={t.path}>{t.label}</option>)}
           </select>
         </label>
         <label className="block">
           <span className="label">change it to</span>
           <input value={value} onChange={(e) => setValue(e.target.value)}
-            className="mt-1 w-full rounded border border-hairline bg-raised px-3 py-2 font-mono text-sm" />
+            className="mt-1 w-full rounded-[2px] border border-hairline bg-raised px-3 py-2 font-mono text-sm" />
         </label>
       </div>
 
@@ -69,12 +69,12 @@ export function ReceiptPanel({ settled }: { settled: Settled[] }) {
 
       {result && (
         <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <div className="rounded border border-admit/30 p-5">
+          <div className="rounded-[2px] border border-admit/30 p-5">
             <div className="font-display text-xl text-admit">{result.before.valid ? "Verified" : "Does not verify"}</div>
             <p className="mt-2 text-sm text-fg-2">As stored and signed.</p>
             <p className="mt-3 font-mono text-xs text-fg-3">{result.path} = {result.was}</p>
           </div>
-          <div className="rounded border border-refuse/40 p-5">
+          <div className="rounded-[2px] border border-refuse/40 p-5">
             <div className="font-display text-xl text-refuse">{result.after.valid ? "Verified" : "Does not verify"}</div>
             <p className="mt-2 text-sm">
               {result.after.tamperedBlocks.length

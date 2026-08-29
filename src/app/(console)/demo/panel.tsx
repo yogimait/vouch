@@ -1,23 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-/** Every panel states the question first. A control with no question is a toy. */
-export function Panel({ n, title, asks, children }: { n: number; title: string; asks: string; children: ReactNode }) {
-  return (
-    <section className="mb-16 scroll-mt-8" id={`act-${n}`}>
-      <div className="mb-5 flex items-baseline gap-4">
-        <span className="font-display text-3xl text-fg-3">{String(n).padStart(2, "0")}</span>
-        <div>
-          <h2 className="display-md text-2xl">{title}</h2>
-          <p className="mt-0.5 text-sm text-fg-2">{asks}</p>
-        </div>
-      </div>
-      <Card className="gap-0 rounded-[3px] p-6">{children}</Card>
-    </section>
-  );
-}
 
 /** Four panels share one habit: the label becomes "running…" while the request is in flight. */
 export function RunButton({ onClick, busy, children, tone = "accent" }: {
@@ -29,7 +12,7 @@ export function RunButton({ onClick, busy, children, tone = "accent" }: {
       onClick={onClick}
       disabled={busy}
       variant={tone === "accent" ? "default" : "outline"}
-      className={cn("rounded-full", tone === "danger" && "border-refuse/40 text-refuse hover:bg-refuse/10 hover:text-refuse")}
+      className={cn("rounded-[2px]", tone === "danger" && "border-refuse/40 text-refuse hover:bg-refuse/10 hover:text-refuse")}
     >
       {busy ? "running…" : children}
     </Button>

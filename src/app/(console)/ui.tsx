@@ -29,9 +29,11 @@ export function PageScroll({ children }: { children: ReactNode }) {
  * The one element on a console page that scrolls. It takes the height the heading and cards leave
  * behind, so the page itself never grows — a dashboard whose summary scrolls away is a report.
  */
-export function ScrollPanel({ title, count, children, bodyClassName }: { title: string; count?: number; children: ReactNode; bodyClassName?: string }) {
+export function ScrollPanel({ title, count, children, bodyClassName, className }: { title: string; count?: number; children: ReactNode; bodyClassName?: string; className?: string }) {
   return (
-    <section className="relative isolate mt-3 flex flex-1 flex-col overflow-hidden rounded-[3px] border border-hairline lg:min-h-0">
+    // cn, not template interpolation: a page overriding the height passes a second lg:min-h-* and
+    // tailwind-merge is what decides between them. Concatenated, the winner is stylesheet order.
+    <section className={cn("relative isolate mt-3 flex flex-1 flex-col overflow-hidden rounded-[3px] border border-hairline lg:min-h-0", className)}>
       {/* Grain on the panel, not the page. -z-10 so a scrolling ledger runs over it, never under. */}
       <NoiseTexture className="-z-10 opacity-[0.45]" frequency={0.8} slope={0.2} />
       <header className="flex shrink-0 items-baseline justify-between gap-4 border-b border-hairline px-4 py-3.5">
