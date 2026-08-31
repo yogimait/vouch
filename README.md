@@ -166,7 +166,13 @@ Each needs `npm run dev` in another terminal.
 | `npm run receipt` | Export, verify, tamper — see above |
 | `npm run harness` | 14 labelled violation classes × 15 attempts = 210 decisions, driving `evaluate()` directly. **Zero gateway calls, zero LLM calls**, by construction |
 | `npm run settle` | Real settlements against Razorpay test mode |
+| `npm run expire` | Gives back what abandoned checkouts are still holding. Asks Razorpay before expiring anything with a gateway order behind it, so an order someone is mid-checkout on is settled rather than swept |
 | `npm run mcp` | The MCP stdio surface: the same four functions as the HTTP routes |
+
+A hold is released three ways, because no one of them is enough: `npm run expire` on demand, the
+`/api/cron/expire` route on a schedule, and the `/live` floor on its own tick. The Vercel cron is
+**daily**, not every few minutes — Hobby plans cap crons at once per day and a shorter expression
+fails the deployment rather than running late. On Pro the cron alone would do.
 
 Gate numbers (`harness`) and settlement numbers (`settle`) live in different tables and are never
 added together. One measures decisions with no network; the other measures money that actually moved.

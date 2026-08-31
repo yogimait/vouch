@@ -11,6 +11,7 @@ import { newId } from "@/core/ids";
 import { runBuyer } from "@/agent/buyer";
 import { demoAgent } from "@/demo/agents";
 import { decisionsSince } from "@/demo/agent";
+import { expireStaleOrders } from "@/core/orders/expire";
 import { DEMO_KEYS } from "@/core/db/seed";
 import { formatInr } from "@/core/money";
 
@@ -69,6 +70,12 @@ export async function opsTick(): Promise<OpsView> {
   // Before consuming anything: an order settled since the last tick puts goods on their shelf, and
   // a shelf credited first is a shelf that does not re-ask for something already on its way.
   await deliverSettled();
+
+  // And anything past its deadline gives its hold back here rather than waiting for the cron. Vercel
+  // caps Hobby crons at once a day, and a fifteen-minute hold sitting for twenty-four hours is not
+  // the property this was built for. Costs one indexed query when nothing is due, which is almost
+  // always; the small limit bounds the tick when something is.
+  await expireStaleOrders(new Date(), 5);
 
   // One statement, returning the state it just produced — so deciding what crossed costs no second
   // read. Never read-then-write: two overlapping ticks would both read the same number and one
