@@ -26,6 +26,7 @@ export function LiveOps({ opening, enabled }: { opening: OpsView; enabled: boole
   const [errand, setErrand] = useState<string | null>(null);
   const [asked, setAsked] = useState("");
   const [filing, setFiling] = useState(false);
+  const [halted, setHalted] = useState<string | null>(null);
   const [steps, setSteps] = useState<StepEvent[]>([]);
   // A ref, not state: the interval closes over it, and putting it in the dependency array would
   // tear down and rebuild the timer on every tick.
@@ -48,7 +49,13 @@ export function LiveOps({ opening, enabled }: { opening: OpsView; enabled: boole
       const data = JSON.parse(event.data);
       if (data.type === "step") setSteps((prior) => [...prior, data]);
       if (data.type === "done") { if (data.view) setView(data.view); setErrand(null); finish(); }
-      if (data.type === "error") { setErrand(null); finish(); }
+      if (data.type === "error") {
+        // A provider quota is not a per-errand problem: every remaining shelf would hit the same
+        // wall and print the same paragraph. Stop the floor and say so once.
+        if (data.fatal) { setPaused(true); setHalted(data.message ?? null); }
+        setErrand(null);
+        finish();
+      }
     };
     // Without this a dropped connection reconnects on its own and silently starts a second run.
     es.onerror = finish;
@@ -141,11 +148,13 @@ export function LiveOps({ opening, enabled }: { opening: OpsView; enabled: boole
       <DemoGate enabled={enabled} />
 
       <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-4 border-y border-hairline py-2.5">
-        <p className="text-sm text-fg-2">
-          {paused ? "The floor is paused." : "Their staff are using things. Nobody is typing."}
+        <p className={cn("max-w-[60ch] text-sm", halted ? "text-escalate" : "text-fg-2")}>
+          {halted ?? (paused ? "The floor is paused." : "Their staff are using things. Nobody is typing.")}
         </p>
         <div className="flex items-center gap-3">
-          <RunButton onClick={() => setPaused((p) => !p)} tone="quiet">{paused ? "Resume" : "Pause"}</RunButton>
+          <RunButton onClick={() => { setHalted(null); setPaused((p) => !p); }} tone="quiet">
+            {paused ? "Resume" : "Pause"}
+          </RunButton>
           <RunButton onClick={reset} busy={resetting} tone="quiet">Refill the floor</RunButton>
         </div>
       </div>
@@ -212,6 +221,8 @@ function Request({ row }: { row: OpsView["requests"][number] }) {
   // Three different things used to render as "not answered". Only one of them is a failure.
   const notPriced = closed && row.quoteRefusal !== null;
   const failed = closed && row.quoteRefusal === null;
+  // ADMIT is the guard letting it through, not anyone being paid. Goods land when the order settles.
+  const promised = (row.outcome === "ADMIT" || row.outcome === "ESCALATE") && row.deliveredAt === null;
 
   return (
     <div className="border-b border-hairline px-4 py-3 last:border-0">
@@ -230,6 +241,12 @@ function Request({ row }: { row: OpsView["requests"][number] }) {
       </div>
       {/* Said out loud rather than hidden behind a hover: a refusal the guard made and a call that
           never arrived look identical otherwise, and only one of them is the product working. */}
+      {promised && (
+        <p className="mt-1.5 text-[11px] leading-relaxed text-fg-3">
+          Admitted, not yet paid. The shelf fills when the order settles and its receipt is signed —
+          our own stock does not move before then either.
+        </p>
+      )}
       {notPriced && (
         <p className="mt-1.5 text-[11px] leading-relaxed text-escalate/80">
           <span className="font-mono">{row.quoteRefusal}</span>

@@ -40,6 +40,8 @@ export interface RequestRow {
   outcome: "ADMIT" | "ESCALATE" | "REFUSE" | null;
   /** Set when the merchant would not price it. An answer, and not one the engine gave. */
   quoteRefusal: string | null;
+  /** Null while an admitted order is still waiting to be paid: promised, not landed. */
+  deliveredAt: string | null;
   words: string | null;
   orderId: string | null;
 }
@@ -63,6 +65,10 @@ const SHOWN = 12;
  */
 export async function opsTick(): Promise<OpsView> {
   const db = getDb();
+
+  // Before consuming anything: an order settled since the last tick puts goods on their shelf, and
+  // a shelf credited first is a shelf that does not re-ask for something already on its way.
+  await deliverSettled();
 
   // One statement, returning the state it just produced — so deciding what crossed costs no second
   // read. Never read-then-write: two overlapping ticks would both read the same number and one
@@ -114,10 +120,11 @@ export function askFor(shelf: { need: string; on_hand: number; start_on_hand: nu
 }
 
 /**
- * A shelf asks once and then waits for an answer, so the floor cannot spin.
+ * A shelf asks once and then waits for the delivery, so the floor cannot spin.
  *
- * Blocked while an errand is still in flight, and blocked for good once one came back as anything
- * other than goods on their way. Without the second half a refused or failed errand freed the shelf
+ * Blocked while an errand is in flight, blocked while an admitted one is still waiting to be paid,
+ * and blocked for good once one came back as anything other than goods on their way. Without that
+ * last part a refused or failed errand freed the shelf
  * the moment it closed, and since the shelf was still empty the next tick asked again — which
  * emptied the cupboard, filled the queue and ran the model until the API cut us off.
  */
@@ -126,7 +133,9 @@ async function shelvesAlreadyAsking(ids: string[]): Promise<Set<string>> {
     select distinct cupboard_item_id as id
       from purchase_requests
      where cupboard_item_id = any(${sql.param(ids)}::text[])
-       and (status <> 'CLOSED' or outcome is null or outcome not in ('ADMIT', 'ESCALATE'))
+       -- Free only once goods have actually landed. Unblocking on ADMIT let a shelf that was still
+       -- empty ask again on the very next tick, every tick, until the model bill said stop.
+       and not (status = 'CLOSED' and outcome in ('ADMIT', 'ESCALATE') and delivered_at is not null)
   `)) as unknown as { id: string }[];
   return new Set(rows.map((r) => r.id));
 }
@@ -157,7 +166,7 @@ export async function opsOverview(): Promise<OpsView> {
       (select coalesce(json_agg(r order by r.created_at desc), '[]')::text
          from (
            select id, source, raised_by as "raisedBy", need, status, outcome,
-                  quote_refusal as "quoteRefusal", words,
+                  quote_refusal as "quoteRefusal", delivered_at as "deliveredAt", words,
                   order_id as "orderId", created_at
              from purchase_requests
             order by created_at desc
@@ -226,21 +235,34 @@ async function dbNow(): Promise<Date> {
 }
 
 /**
- * The delivery arrives, so the shelf goes up by what was actually bought — never straight to full.
+ * Deliveries. The shelf goes up when the order is PAID and its receipt exists — never on admission.
  *
- * A refusal delivers nothing, and refilling on one would draw a cupboard that restocks itself out of
- * orders the merchant declined. Under-buy and the shelf is still below its line, so it asks again on
- * the next tick: that is the floor correcting itself, not a loop.
+ * ADMIT means the guard let the purchase through, not that anyone has been paid. Our own warehouse
+ * only draws stock down at settlement (drawDownStock, core/orders/settle.ts), and goods cannot land
+ * on their shelf before they leave ours. An admitted order that is never paid delivers nothing, and
+ * the cupboard has to show that rather than restocking itself on a promise.
+ *
+ * Idempotent through delivered_at: a row is credited once, whichever tick notices it first.
+ * At most one undelivered request exists per shelf -- shelvesAlreadyAsking will not let a shelf
+ * ask again until its last one landed -- so the UPDATE below can never have two rows competing
+ * for one shelf, which Postgres would resolve by silently applying one of them.
  */
-async function refillShelfFor(requestId: string): Promise<void> {
+async function deliverSettled(): Promise<void> {
   await getDb().execute(sql`
+    with landed as (
+      update purchase_requests r
+         set delivered_at = now()
+        from orders o
+       where o.id = r.order_id and r.delivered_at is null
+         and o.state = 'PAID'
+         and exists (select 1 from receipts where receipts.order_id = o.id)
+      returning r.id, r.cupboard_item_id, o.offer_id
+    )
     update cupboard_items c
        set on_hand = least(c.on_hand + f.qty, c.start_on_hand)
-      from purchase_requests r
-      join orders o on o.id = r.order_id
-      join offers f on f.id = o.offer_id
-     where r.id = ${requestId} and r.cupboard_item_id = c.id
-       and r.outcome in ('ADMIT', 'ESCALATE')
+      from landed
+      join offers f on f.id = landed.offer_id
+     where c.id = landed.cupboard_item_id
   `);
 }
 
@@ -312,7 +334,6 @@ export function opsStream(requestId: string): ReadableStream<Uint8Array> {
                  order_id = ${run.orderId}
            where id = ${requestId}
         `);
-        await refillShelfFor(requestId);
 
         send({ type: "done", outcome: last?.outcome ?? null,
                code: last?.code ?? (last ? null : run.quoteRefusal),
@@ -320,18 +341,43 @@ export function opsStream(requestId: string): ReadableStream<Uint8Array> {
       } catch (error) {
         // Closed with no outcome, deliberately. A guard that gets credit for an API timeout is
         // measuring nothing, so a model failure must never be filed as a refusal.
-        const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+        const message = plainly(error);
         await getDb().execute(sql`
           update purchase_requests
              set status = 'CLOSED', closed_at = now(), words = ${`the model call failed before reaching the guard — ${message}`}
            where id = ${requestId}
         `).catch(() => {});
-        send({ type: "error", message });
+        // fatal stops the floor rather than letting every remaining shelf hit the same wall
+        // and fill the counter with the same paragraph four times over.
+        send({ type: "error", message, fatal: outOfTokens(error) });
       } finally {
         if (open) controller.close();
       }
     },
   });
+}
+
+/** The model provider's own quota, not anything this system did. Worth saying in four words. */
+function outOfTokens(error: unknown): boolean {
+  return error instanceof Error && /rate limit|quota|tokens per day|TPD/i.test(error.message);
+}
+
+/**
+ * The provider's raw error is a paragraph carrying an org id and a billing link. A counter that
+ * prints it verbatim is unreadable, and the one fact that matters -- nothing reached the guard --
+ * is buried at the end of it.
+ */
+function plainly(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  if (outOfTokens(error)) {
+    // Trailing period stripped, not excluded: the duration itself contains one (2m49.344s).
+    const wait = /try again in ([^ ]+)/i.exec(raw);
+    return "the model provider is out of tokens for today"
+      + (wait ? `, and asks for ${wait[1].replace(/\.$/, "")}` : "")
+      + " -- a Groq account limit, not a decision anything here made";
+  }
+  const first = raw.split("\n")[0];
+  return first.length > 200 ? `${first.slice(0, 200)}...` : first;
 }
 
 /**

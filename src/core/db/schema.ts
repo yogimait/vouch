@@ -316,6 +316,10 @@ export const purchaseRequests = pgTable("purchase_requests", {
   words: text("words"),
   createdAt: createdAt(),
   closedAt: timestamp("closed_at", { withTimezone: true }),
+  // When the goods actually landed on the shelf. Stamped from settlement, never from admission --
+  // stock leaves our warehouse when the money is taken, and it has to arrive on their side the same
+  // way. Null on an admitted order is the honest state: promised, not delivered.
+  deliveredAt: timestamp("delivered_at", { withTimezone: true }),
 }, (t) => [
   index("requests_status_idx").on(t.status, t.createdAt),
   // One open errand per shelf. The insert already checks, but a check races the next tick.
