@@ -222,8 +222,14 @@ async function main(): Promise<void> {
     await ctx.close();
     if (video) {
       const saved = `evidence/video/device-${order.id}.webm`;
-      await video.saveAs(saved).catch(() => {});
-      console.error(`   video ${saved}`);
+      // Reported honestly rather than swallowed: a failed rename used to print a path that did not
+      // exist, with the recording sitting beside it under Playwright's hashed name.
+      try {
+        await video.saveAs(saved);
+        console.error(`   video ${saved}`);
+      } catch {
+        console.error(`   video ${await video.path()}`);
+      }
     }
 
     // No webhook reached us here, so the receipt will say mode:"polled". Never claim a signature
