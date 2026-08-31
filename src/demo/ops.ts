@@ -5,6 +5,7 @@
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/core/db";
+import { env } from "@/core/env";
 import { purchaseRequests } from "@/core/db/schema";
 import { newId } from "@/core/ids";
 import { runBuyer } from "@/agent/buyer";
@@ -257,7 +258,7 @@ export function opsStream(requestId: string): ReadableStream<Uint8Array> {
         send({ type: "start", requestId, need, agent: agent.name });
 
         const run = await runBuyer({
-          baseUrl: process.env.APP_URL ?? "http://localhost:3000",
+          baseUrl: env().APP_URL,
           apiKey: process.env.VOUCH_AGENT_KEY ?? DEMO_KEYS.shopbot,
           instruction: need,
           onStep: (step) => send({ type: "step", ...step }),

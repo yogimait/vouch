@@ -4,6 +4,7 @@
 // HTTP exactly as demo2 does; this file only watches. Nothing here can influence what it decides.
 import { and, eq, gt } from "drizzle-orm";
 import { getDb } from "@/core/db";
+import { env } from "@/core/env";
 import { authorizations, decisions, misquoteEvents } from "@/core/db/schema";
 import { formatInr } from "@/core/money";
 import { balances } from "@/core/ledger";
@@ -59,7 +60,7 @@ export function agentStream(instruction: string, who: DemoAgent = "shopbot"): Re
         });
 
         const run = await runBuyer({
-          baseUrl: process.env.APP_URL ?? "http://localhost:3000",
+          baseUrl: env().APP_URL,
           apiKey: who === "frozen" ? DEMO_KEYS.frozen : (process.env.VOUCH_AGENT_KEY ?? DEMO_KEYS.shopbot),
           instruction,
           onStep: (step) => send({ type: "step", ...step }),

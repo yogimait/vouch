@@ -5,7 +5,7 @@ import { verify as verifySignature } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import { receipts } from "@/core/db/schema";
-import { publicKeyFromBase64 } from "@/core/crypto/keys";
+import { publicKeyFromBase64, signingKeys } from "@/core/crypto/keys";
 import { verifyChain } from "@/core/audit/chain";
 import { BLOCK_NAMES, hashBlock, RECEIPT_TYP, type BlockName, type ReceiptBody } from "@/core/receipts/build";
 
@@ -75,7 +75,11 @@ async function loadRow(orderId: string): Promise<Row | undefined> {
 
 /** The public key travels with the bundle so verification needs nothing from us but the file. */
 function bundleOf(row: Row): Extract<LoadResult, { ok: true }> {
-  const publicKey = process.env.VOUCH_SIGNING_PUBLIC_KEY ?? "";
+  // signingKeys() throws when the key is absent. The `?? ""` this replaces made
+  // publicKeyFromBase64 throw further in, where it was caught and reported as signatureValid:false
+  // -- a missing environment variable and a forged receipt looked identical on the one screen the
+  // whole product rests on.
+  const publicKey = signingKeys().publicKey.export({ type: "spki", format: "der" }).toString("base64");
   const bundle: Bundle = { receipt: row.body, signature: row.signature, key_id: row.keyId, public_key: publicKey };
   return { ok: true, bundle, verification: verifyBundle(bundle) };
 }

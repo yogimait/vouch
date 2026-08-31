@@ -21,6 +21,8 @@ export interface PayView {
   itemName: string;
   unitPricePaise: bigint;
   offerExpiresAt: Date;
+  /** The order's own deadline. After this its hold goes back and it cannot be paid. */
+  expiresAt: Date;
   merchantName: string;
   merchantLegalName: string;
 
@@ -50,7 +52,7 @@ type Row = Record<string, unknown>;
 export async function payView(orderId: string): Promise<PayView | null> {
   const rows = (await getDb().execute(sql`
     select
-      o.id, o.state, o.razorpay_order_id,
+      o.id, o.state, o.razorpay_order_id, o.expires_at,
       o.amount_paise::text as amount,
       f.sku, f.qty, f.expires_at as offer_expires_at,
       f.unit_price_paise::text as unit_price,
@@ -111,6 +113,7 @@ export async function payView(orderId: string): Promise<PayView | null> {
     itemName: String(r.item_name),
     unitPricePaise: paiseFromSql(r.unit_price),
     offerExpiresAt: new Date(r.offer_expires_at as Date),
+    expiresAt: new Date(r.expires_at as Date),
     merchantName: String(r.merchant_name),
     merchantLegalName: String(r.legal_name),
 

@@ -37,6 +37,11 @@ export const ERROR_CODES = {
   IDEMPOTENCY_CONFLICT: { http: 409, message: "This idempotency key was used with different terms." },
   ORDER_UNKNOWN: { http: 404, message: "No such order." },
   ORDER_NOT_SETTLED: { http: 409, message: "Order has not settled, so no receipt exists yet." },
+  // Neither OFFER_EXPIRED nor AUTHORIZATION_EXPIRED covers this: those describe the inputs to
+  // admission, and this is an order that was admitted and then aged out waiting to be paid.
+  ORDER_EXPIRED: { http: 409, message: "This order passed its deadline and its hold was released." },
+  ORDER_NOT_ESCALATED: { http: 409, message: "Only an escalation is waiting on a person's answer." },
+  ORDER_CLOSED: { http: 409, message: "This order was closed without being paid." },
   RECEIPT_UNKNOWN: { http: 404, message: "No such receipt." },
 
   // infrastructure — every one of these must read as a refusal, never as an allow

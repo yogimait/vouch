@@ -18,6 +18,7 @@ import { APPROVAL_WINDOW_MS, HOLD_WINDOW_MS } from "@/core/orders/expiry";
 import { createOrder, createPaymentLink, GatewayError } from "@/core/razorpay";
 import type { ErrorCode } from "@/core/errors";
 import { messageFor } from "@/core/errors";
+import { env } from "@/core/env";
 
 export type PaySource = "mcp" | "http" | "llm" | "harness";
 
@@ -39,7 +40,10 @@ export type PayResult =
 
 /** ASPG shipped this with the agent filter missing, which let one agent resume another's order. */
 async function findResumable(agentId: string, idempotencyKey: string) {
-  const [row] = await getDb().select().from(orders)
+  // The offer's token comes back with the order so the caller can be checked against the terms the
+  // key was first used with. Compared as bytes, never parsed: at this point nothing is verified yet.
+  const [row] = await getDb().select({ order: orders, offerToken: offers.token }).from(orders)
+    .innerJoin(offers, eq(offers.id, orders.offerId))
     .where(and(eq(orders.agentId, agentId), eq(orders.idempotencyKey, idempotencyKey)))
     .limit(1);
   return row ?? null;
@@ -74,7 +78,24 @@ export async function pay(input: PayInput): Promise<PayResult> {
   const db = getDb();
 
   const existing = await findResumable(input.agentId, input.idempotencyKey);
-  if (existing) return resume(existing, await decisionIdFor(existing.id));
+  if (existing) {
+    // A key reused with different terms used to return the FIRST order, 201, as if it had just
+    // succeeded -- an agent that quoted item B and reused a key was told it had bought it.
+    // IDEMPOTENCY_CONFLICT has been in the catalogue since day one with nothing ever throwing it.
+    if (existing.offerToken !== input.offerToken) {
+      const result = refusal("IDEMPOTENCY_CONFLICT", "order.idempotency");
+      const decisionId = await recordDecision({
+        agentId: input.agentId, source: input.source, label: input.label, result,
+        offerId: null, authorizationId: null, orderId: null,
+        balanceBeforePaise: null, policySnapshot: {},
+      });
+      return {
+        outcome: "REFUSE", decisionId, code: "IDEMPOTENCY_CONFLICT", reasons: result.reasons,
+        details: { observed: input.idempotencyKey, expected: existing.order.id },
+      };
+    }
+    return resume(existing.order, await decisionIdFor(existing.order.id));
+  }
 
   const started = Date.now();
   const [agent] = await db.select().from(buyerAgents).where(eq(buyerAgents.id, input.agentId)).limit(1);
@@ -304,9 +325,15 @@ async function escalate(args: BranchInput & { reasons: Reason[]; now: Date }): P
   }
 }
 
-/** Trailing slashes make a URL that looks right and 404s. */
+/**
+ * Trailing slashes make a URL that looks right and 404s.
+ *
+ * env(), not process.env: the raw read carried its own localhost fallback, so an unset APP_URL in
+ * production handed every admitted agent an unreachable payment URL for an order that had already
+ * reserved money. env() has a validated default and one place to change it.
+ */
 function appUrl(): string {
-  return (process.env.APP_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+  return env().APP_URL.replace(/\/+$/, "");
 }
 
 async function gatewayFailed(orderId: string, decisionId: string, error: unknown): Promise<PayResult> {
@@ -333,6 +360,17 @@ async function gatewayFailed(orderId: string, decisionId: string, error: unknown
 
 /** A replay returns the original outcome. ASPG failed closed here because it stored no bodies. */
 function resume(order: typeof orders.$inferSelect, decisionId: string): PayResult {
+  // Closed and never paid. This used to fall through to ADMIT and hand back an authorization_url
+  // for an order nothing can settle -- a replay reporting success for money that never moved.
+  if (order.state === "EXPIRED" || order.state === "FAILED") {
+    const code: ErrorCode = order.state === "EXPIRED" ? "ORDER_EXPIRED" : "ORDER_CLOSED";
+    return {
+      outcome: "REFUSE", decisionId, code,
+      reasons: [{ code, rule: "order.replay", message: messageFor(code) }],
+      details: { observed: order.state, expected: "PAID" },
+    };
+  }
+
   if (order.state === "ESCALATED") {
     return {
       outcome: "ESCALATE", decisionId, orderId: order.id, amountPaise: order.amountPaise,

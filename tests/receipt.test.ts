@@ -76,7 +76,8 @@ suite("dispute-grade receipt", () => {
     // Settle it the way production does, so the receipt is built by the real path.
     const raw = JSON.stringify({
       event: "payment.captured",
-      payload: { payment: { entity: { id: `pay_RC${stamp}`, notes: { vouch_order_id: orderId } } } },
+      payload: { payment: { entity: { id: `pay_RC${stamp}`, order_id: `order_RC${stamp}`,
+        amount: Number(AMOUNT), notes: { vouch_order_id: orderId } } } },
     });
     await handleWebhook(raw, createHmac("sha256", SECRET).update(raw).digest("hex"));
   });
