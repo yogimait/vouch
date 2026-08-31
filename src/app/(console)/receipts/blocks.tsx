@@ -115,13 +115,16 @@ interface Props {
 
 export function Blocks({ blocks, hashes, tampered }: Props) {
   return (
-    <div className="space-y-2">
+    // Two across, so all six of the chain are on screen at once — stacked, the panel showed three
+    // and the point of the page is that there are six. The open one takes the full width back,
+    // because a signature and a policy snapshot do not read in a half column.
+    <div className="grid gap-2 lg:grid-cols-2">
       {BLOCK_NAMES.map((name) => {
         const broken = tampered.includes(name);
         return (
-          <details key={name} className="rounded-[3px] border border-hairline px-5 py-4">
+          <details key={name} className="h-fit rounded-[3px] border border-hairline px-5 py-4 lg:open:col-span-2">
             <summary className="flex cursor-pointer flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-              <span>
+              <span className="min-w-0">
                 <span className={`font-mono text-sm ${broken ? "text-refuse" : "text-fg"}`}>{name}</span>
                 <span className="ml-3 text-xs text-fg-3">{QUESTION[name]}</span>
               </span>

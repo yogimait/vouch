@@ -19,6 +19,8 @@ export interface DecisionRow {
   qty: number | null;
   amountPaise: bigint | null;
   outcome: "ADMIT" | "ESCALATE" | "REFUSE";
+  /** Null for most refusals — they never became an order, so there is nothing to authorise. */
+  orderId: string | null;
   reasons: DecisionReason[];
   matchedRules: string[];
   latencyMs: number;
@@ -39,6 +41,7 @@ export async function listDecisions(limit = 50): Promise<DecisionRow[]> {
       qty: offers.qty,
       amount: sql<string>`${offers.totalPaise}::text`,
       outcome: decisions.outcome,
+      orderId: decisions.orderId,
       reasons: decisions.reasons,
       matchedRules: decisions.matchedRules,
       latencyMs: decisions.latencyMs,

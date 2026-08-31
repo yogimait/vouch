@@ -7,6 +7,7 @@ import { ReceiptFacts } from "./cards";
 import { Blocks } from "../blocks";
 import { TamperControl } from "./tamper";
 import { PageHeading, ScrollPanel } from "../../ui";
+import { Summary } from "../../summary";
 
 export const dynamic = "force-dynamic";
 
@@ -26,11 +27,14 @@ export default async function ReceiptPage({ params }: { params: Promise<{ orderI
 
   return (
     <>
-      <PageHeading
+      {/* Summary, not PageHeading: four content-rich cards and six blocks do not both fit the pinned
+          console height, and this was the one ledger page with no way to fold the cards away. */}
+      <Summary
         title={item?.name ?? body.receipt_id}
         subtitle={`${bought} · receipt ${short(body.receipt_id)} · order ${short(orderId)} · signed with ${loaded.bundle.key_id}`}
-      />
-      <ReceiptFacts body={body} verification={loaded.verification} />
+      >
+        <ReceiptFacts body={body} verification={loaded.verification} />
+      </Summary>
 
       <ScrollPanel title="Six blocks, each hashed on its own" count={6} bodyClassName="p-4">
         <Blocks blocks={body.blocks} hashes={body.block_hashes} tampered={loaded.verification.tamperedBlocks} />
