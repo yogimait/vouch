@@ -22,6 +22,13 @@
       "when": 1788116708328,
       "tag": "0002_curious_daredevil",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788170876568,
+      "tag": "0003_graceful_gressill",
+      "breakpoints": true
     }
   ]
 }

@@ -150,6 +150,11 @@ export const orders = pgTable("orders", {
 
   failureReason: text("failure_reason"),
   settledAt: timestamp("settled_at", { withTimezone: true }),
+  // The deadline lives here, not only on the ledger row: an ESCALATE reserves nothing, so a
+  // ledger-only sweep could never find one. The default is kept rather than dropped after the
+  // backfill -- an insert that forgets a deadline then expires immediately, which is the direction
+  // everything else in this file already fails.
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull().default(sql`now()`),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
@@ -158,6 +163,7 @@ export const orders = pgTable("orders", {
   uniqueIndex("orders_rzp_payment_unique").on(t.razorpayPaymentId),
   index("orders_state_idx").on(t.state),
   index("orders_created_idx").on(t.createdAt),
+  index("orders_expires_idx").on(t.expiresAt),
 ]);
 
 // Screens 1, 5. THE GATE LEDGER, deliberately separate from orders (the settlement ledger).

@@ -26,6 +26,7 @@
     "demo:3": "tsx --env-file=.env.local scripts/demo3.ts",
     "demo:4": "tsx --env-file=.env.local scripts/demo4.ts",
     "harness": "tsx --env-file=.env.local scripts/harness.ts",
+    "expire": "tsx --env-file=.env.local scripts/expire.ts",
     "restock": "tsx --env-file=.env.local scripts/restock.ts",
     "film": "tsx --env-file=.env.local scripts/film.ts",
     "settle": "tsx --env-file=.env.local scripts/settle.ts"

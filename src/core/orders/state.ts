@@ -12,7 +12,12 @@ const TRANSITIONS: Record<OrderState, OrderState[]> = {
   ESCALATED: ["PAID", "FAILED", "EXPIRED"],
   PAID: [],
   FAILED: [],
-  EXPIRED: [],
+  // Not terminal, and deliberately so. A capture can land after the deadline -- a late webhook, a
+  // payer finishing at minute sixteen -- and if PAID were unreachable from here settleOrder would
+  // bail with changed:false: money taken at Razorpay, no COMMIT, no receipt. The ledger survives
+  // that either way (a RELEASE and a later COMMIT both land and the debit still stands); the order
+  // and its receipt would not.
+  EXPIRED: ["PAID"],
 };
 
 export interface StateChange {

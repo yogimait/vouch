@@ -17,9 +17,19 @@ describe("order state transitions", () => {
   });
 
   it("never leaves a terminal state", () => {
-    for (const from of ["PAID", "FAILED", "EXPIRED"] as OrderState[]) {
+    for (const from of ["PAID", "FAILED"] as OrderState[]) {
       expect(isTerminal(from)).toBe(true);
       for (const to of ALL) expect(canTransition(from, to)).toBe(false);
+    }
+  });
+
+  it("lets an expired order still settle, and nothing else", () => {
+    // A capture can arrive after the deadline. Refusing it there would leave money taken at the
+    // gateway with no COMMIT and no receipt behind it.
+    expect(canTransition("EXPIRED", "PAID")).toBe(true);
+    expect(isTerminal("EXPIRED")).toBe(false);
+    for (const to of ALL.filter((s) => s !== "PAID")) {
+      expect(canTransition("EXPIRED", to)).toBe(false);
     }
   });
 

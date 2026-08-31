@@ -14,6 +14,7 @@ import type { AdmissionContext, AdmissionResult, Reason } from "@/core/engine/ty
 import { balances, release, reserve } from "@/core/ledger";
 import { setOrderState } from "@/core/orders/state";
 import { verifyOffer, type VerifiedOffer } from "@/core/offers/verify";
+import { APPROVAL_WINDOW_MS, HOLD_WINDOW_MS } from "@/core/orders/expiry";
 import { createOrder, createPaymentLink, GatewayError } from "@/core/razorpay";
 import type { ErrorCode } from "@/core/errors";
 import { messageFor } from "@/core/errors";
@@ -175,6 +176,9 @@ export async function pay(input: PayInput): Promise<PayResult> {
     idempotencyKey: input.idempotencyKey,
     amountPaise: offer.totalPaise,
     state: "ADMITTED",
+    // The short window from the start, so an order that dies between here and the gateway is still
+    // sweepable. escalate() extends it, because by then a person is the one being waited on.
+    expiresAt: new Date(now.getTime() + HOLD_WINDOW_MS),
   });
   await db.update(offers).set({ consumedAt: now }).where(eq(offers.id, offer.row.id));
 
@@ -184,7 +188,7 @@ export async function pay(input: PayInput): Promise<PayResult> {
   });
 
   return result.outcome === "ESCALATE"
-    ? escalate({ input, orderId, decisionId, offer, reasons: result.reasons })
+    ? escalate({ input, orderId, decisionId, offer, reasons: result.reasons, now })
     : admit({ input, orderId, decisionId, offer, auth: auth!, now });
 }
 
@@ -212,7 +216,7 @@ async function admit(
     reservationId: orderId,
     amountPaise: offer.totalPaise,
     maxAmountPaise: auth.maxAmountPaise,
-    expiresAt: new Date(now.getTime() + 15 * 60_000),
+    expiresAt: new Date(now.getTime() + HOLD_WINDOW_MS),
   });
 
   if (!held.ok) {
@@ -262,8 +266,8 @@ async function admit(
 }
 
 /** ESCALATE holds nothing: the payment is outside this agent's authority, so a human decides. */
-async function escalate(args: BranchInput & { reasons: Reason[] }): Promise<PayResult> {
-  const { input, orderId, decisionId, offer, reasons } = args;
+async function escalate(args: BranchInput & { reasons: Reason[]; now: Date }): Promise<PayResult> {
+  const { input, orderId, decisionId, offer, reasons, now } = args;
   try {
     // A person needs a URL that outlives this process, so a Razorpay-hosted link is the right
     // mechanism here. Test mode allows 30 for the account's lifetime, so when the gateway refuses
@@ -287,7 +291,10 @@ async function escalate(args: BranchInput & { reasons: Reason[] }): Promise<PayR
 
     const authorizationUrl = link?.short_url ?? `${appUrl()}/pay/${orderId}`;
     await getDb().update(orders)
-      .set({ razorpayOrderId: gatewayOrder.id, razorpayPaymentLinkId: link?.id ?? null, authorizationUrl })
+      // Extended, not replaced: an escalation waits on a person rather than on a machine that is
+      // already holding money, and fifteen minutes is not long enough for anyone to be asked.
+      .set({ razorpayOrderId: gatewayOrder.id, razorpayPaymentLinkId: link?.id ?? null, authorizationUrl,
+             expiresAt: new Date(now.getTime() + APPROVAL_WINDOW_MS) })
       .where(eq(orders.id, orderId));
     await setOrderState({ orderId, next: "ESCALATED" });
 

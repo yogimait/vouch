@@ -19,6 +19,7 @@ export type AuditEventType =
   | "RELEASE"
   | "RECEIPT_ISSUED"
   | "ORDER_FAILED"
+  | "ORDER_EXPIRED"
   | "SEED";
 
 const AUDIT_CHAIN_LOCK = 7_402_000_001n;
