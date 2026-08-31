@@ -43,6 +43,7 @@ export function Missing({ orderId }: { orderId: string }) {
 }
 
 function Approving({ view }: { view: PayView }) {
+  const live = view.state !== "PAID" && view.state !== "FAILED" && view.state !== "EXPIRED";
   return (
     <StatCard title="What you are approving" index={0}>
       <Big value={formatInr(view.amountPaise)} caption={`${view.qty} × ${view.sku}`} />
@@ -51,6 +52,9 @@ function Approving({ view }: { view: PayView }) {
         <Figure label="unit price" value={formatInr(view.unitPricePaise)} />
         <Figure label="merchant" value={view.merchantLegalName} />
         <Figure label="signed offer expires" value={stamp(view.offerExpiresAt)} />
+        {/* Only while it can still be paid. On a closed order this is history, and the card below
+            already says what happened to it. */}
+        {live && <Figure label="this order expires" value={stamp(view.expiresAt)} />}
       </div>
       <Note>
         The merchant signed this price before the agent quoted it. The expiry fixed how long that
@@ -145,17 +149,26 @@ function Drawdown({ view }: { view: PayView }) {
 export function PayShell({ view, children }: { view: PayView; children: ReactNode }) {
   const escalated = view.outcome === "ESCALATE";
   const paid = view.state === "PAID";
+  // The heading has to follow the order, not only the decision. An escalation that was declined or
+  // that timed out is still an escalation on the record, and "the decision is yours" is no longer
+  // true of it — the decision has been made.
+  const closed = view.state === "EXPIRED" || view.state === "FAILED";
+  const expired = view.state === "EXPIRED";
 
   return (
     <Frame
-      kicker={`${view.merchantName} / ${paid ? "settled" : escalated ? "approval required" : "authorisation"}`}
+      kicker={`${view.merchantName} / ${paid ? "settled" : closed ? "closed" : escalated ? "approval required" : "authorisation"}`}
       title={
         paid ? <>This one is <span className="em">paid</span>.</>
+          : expired ? <>Nobody answered in <span className="em">time</span>.</>
+          : closed ? <>This one was <span className="em">closed</span>.</>
           : escalated ? <>The agent could not <span className="em">authorise</span> this.</>
           : <>Authorise this <span className="em">payment</span>.</>
       }
       subtitle={
         paid ? "The money moved and the receipt is signed. Everything below is what was true when it did."
+          : expired ? "The order passed its deadline before anyone authorised it, so the guard gave the money it was holding back to the mandate."
+          : closed ? "Nothing was charged and nothing is held. Everything below is what was true when the order was still open."
           : escalated ? "An AI buyer asked to spend more than its principal delegated to it. It stopped, and the decision is yours."
           : "An AI buyer was admitted to spend here. It holds no payment credential, so a person completes the step it cannot."
       }
@@ -182,6 +195,24 @@ export function Settled({ orderId }: { orderId: string }) {
         open the receipt
       </Link>
     </div>
+  );
+}
+
+/** Closed and never paid. The hold, if there was one, has already gone back. */
+export function Closed({ state }: { state: string }) {
+  const expired = state === "EXPIRED";
+  return (
+    <>
+      <p className="text-sm text-refuse">
+        {expired
+          ? "This order passed its deadline. The money it was holding has gone back to the mandate, so there is nothing here to authorise."
+          : "This order was closed without being paid. Nothing is held and nothing was charged."}
+      </p>
+      <p className="mt-2 text-sm text-fg-2">
+        The agent can ask for a fresh price and try again — a new offer, not this one.
+      </p>
+      <p className="mt-3 font-mono text-xs text-fg-3">state: {state.toLowerCase()}</p>
+    </>
   );
 }
 

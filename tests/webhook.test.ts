@@ -22,12 +22,22 @@ function signed(body: unknown): { raw: string; signature: string } {
   return { raw, signature: createHmac("sha256", SECRET).update(raw).digest("hex") };
 }
 
-function capturedEvent(orderId: string, paymentId: string) {
+// The shape Razorpay actually sends. order_id is what binds a payment to an order -- notes are
+// client-supplied at checkout and cannot be the binding on their own.
+function capturedEvent(orderId: string, paymentId: string, over: { order_id?: string; amount?: number } = {}) {
   return {
     event: "payment.captured",
-    payload: { payment: { entity: { id: paymentId, notes: { vouch_order_id: orderId } } } },
+    payload: { payment: { entity: {
+      id: paymentId,
+      order_id: over.order_id ?? `order_WH${stamp}`,
+      amount: over.amount ?? Number(AMOUNT),
+      notes: { vouch_order_id: orderId },
+    } } },
   };
 }
+
+const stamp = Date.now();
+const AMOUNT = 250_00n;
 
 suite("razorpay webhook", () => {
   let db: ReturnType<typeof import("@/core/db").getDb>;
@@ -36,8 +46,6 @@ suite("razorpay webhook", () => {
   let handleWebhook: typeof import("@/core/orders/webhook").handleWebhook;
 
   const MAX = 1000_00n;
-  const AMOUNT = 250_00n;
-  const stamp = Date.now();
   const authId = `auth_WH${stamp}`;
   const offerId = `off_WH${stamp}`;
   const orderId = `ord_WH${stamp}`;
@@ -68,6 +76,7 @@ suite("razorpay webhook", () => {
     await db.insert(schema.orders).values({
       id: orderId, agentId: agent.id, authorizationId: authId, offerId,
       idempotencyKey: `idem_WH${stamp}`, amountPaise: AMOUNT, state: "AWAITING_AUTHORIZATION",
+      razorpayOrderId: `order_WH${stamp}`,
     });
     await ledger.reserve({
       authorizationId: authId, orderId, reservationId: orderId,
@@ -97,6 +106,28 @@ suite("razorpay webhook", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].signature_verified).toBe(false);
     await db.execute(sql`delete from webhook_events where raw_body = ${raw}`);
+  });
+
+  it("will not settle a payment that names a different gateway order", async () => {
+    // notes are client-supplied at Razorpay's checkout, so a signed webhook could name any order
+    // and take its whole reserved amount. The gateway order id is ours, and it is the real binding.
+    const { raw, signature } = signed(
+      capturedEvent(orderId, `pay_EVIL${stamp}`, { order_id: `order_SOMEONE_ELSE${stamp}` }),
+    );
+    const result = await handleWebhook(raw, signature);
+    expect(result.reason).toBe("mismatched");
+
+    const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, orderId));
+    expect(order.state).toBe("AWAITING_AUTHORIZATION");
+    expect((await ledger.balances(authId, MAX)).debitedPaise).toBe(0n);
+  });
+
+  it("will not settle a capture for the wrong amount", async () => {
+    const { raw, signature } = signed(
+      capturedEvent(orderId, `pay_CHEAP${stamp}`, { amount: 1 }),
+    );
+    expect((await handleWebhook(raw, signature)).reason).toBe("mismatched");
+    expect((await ledger.balances(authId, MAX)).debitedPaise).toBe(0n);
   });
 
   // Twenty-odd round trips to a hosted Postgres, twice over. Vitest's 5s default was a coin flip on
@@ -129,7 +160,8 @@ suite("razorpay webhook", () => {
   it("does not reopen a settled order when a failure arrives late", async () => {
     const { raw, signature } = signed({
       event: "payment.failed",
-      payload: { payment: { entity: { id: `pay_LATE${stamp}`, notes: { vouch_order_id: orderId }, error_description: "late" } } },
+      payload: { payment: { entity: { id: `pay_LATE${stamp}`, order_id: `order_WH${stamp}`,
+        notes: { vouch_order_id: orderId }, error_description: "late" } } },
     });
 
     await handleWebhook(raw, signature);

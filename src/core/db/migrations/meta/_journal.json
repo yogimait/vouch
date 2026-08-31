@@ -15,6 +15,34 @@
       "when": 1787596926825,
       "tag": "0001_spooky_piledriver",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788116708328,
+      "tag": "0002_curious_daredevil",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788170876568,
+      "tag": "0003_graceful_gressill",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788176131671,
+      "tag": "0004_nasty_demogoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788177750122,
+      "tag": "0005_flawless_miss_america",
+      "breakpoints": true
     }
   ]
 }

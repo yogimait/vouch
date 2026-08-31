@@ -1,0 +1,1 @@
+ALTER TABLE "purchase_requests" ADD COLUMN "delivered_at" timestamp with time zone;

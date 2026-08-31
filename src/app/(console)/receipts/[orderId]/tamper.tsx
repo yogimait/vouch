@@ -9,7 +9,7 @@
 import { useState } from "react";
 import type { TamperResult } from "@/demo/tamper";
 import { TAMPER_TARGETS } from "@/demo/targets";
-import { Note, RunButton } from "../../demo/panel";
+import { Note, RunButton } from "../../panel";
 
 export function TamperControl({ orderId, enabled }: { orderId: string; enabled: boolean }) {
   const [path, setPath] = useState<string>(TAMPER_TARGETS[0].path);

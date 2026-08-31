@@ -1,5 +1,5 @@
 // Route-handler plumbing. Keeps every route at the 12-line ceiling.
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
 import type { ZodType } from "zod";
 import { getDb } from "@/core/db";
@@ -49,6 +49,19 @@ export async function requireAgent(request: Request): Promise<Parsed<AgentRow>> 
   const agent = await agentByKey(key);
   if (!agent) return { ok: false, response: fail("AGENT_UNKNOWN") };
   return { ok: true, value: agent };
+}
+
+/**
+ * The scheduler's own bearer. Nothing about it is an agent, so it does not go through requireAgent:
+ * there is no row to look up and no decision to label. An unset CRON_SECRET refuses every call.
+ */
+export function cronAuthorized(request: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const header = request.headers.get("authorization") ?? "";
+  const given = Buffer.from(header.startsWith("Bearer ") ? header.slice(7).trim() : "");
+  const want = Buffer.from(secret);
+  return given.length === want.length && timingSafeEqual(given, want);
 }
 
 const SOURCES = ["mcp", "http", "llm", "harness"] as const;

@@ -1,0 +1,1 @@
+ALTER TABLE "purchase_requests" ADD COLUMN "quote_refusal" text;

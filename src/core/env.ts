@@ -20,6 +20,11 @@ const Schema = z.object({
   GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
 
   APP_URL: z.string().url().default("http://localhost:3000"),
+
+  // Optional for the same reason as the webhook secret: one strict parse means an unset value here
+  // would break every other route. Absent means /api/cron/expire always refuses — npm run expire
+  // still works, so the safe direction costs nothing.
+  CRON_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof Schema>;

@@ -11,6 +11,7 @@ const BASE = process.env.APP_URL ?? "http://localhost:3000";
 const KEY = process.env.VOUCH_AGENT_KEY ?? "vouch_sk_demo_shopbot";
 const SKU = process.argv[2] ?? "SKU-C";
 
+interface Reason { code: string; observed?: string; expected?: string; rule?: string }
 interface Envelope<T> { status: boolean; statusCode: number; data?: T; message?: string; error?: { code: string; details?: Record<string, unknown> } }
 
 async function call<T>(path: string, body?: unknown): Promise<Envelope<T>> {
@@ -50,10 +51,19 @@ async function main(): Promise<void> {
   console.log(`   token ${quote.data.offer_token.slice(0, 48)}...`);
 
   step(3, "the agent pays — note there is no amount to send");
-  const paid = await call<{ order_id: string; authorization_url: string; decision_id: string }>(
+  const paid = await call<{ order_id: string; authorization_url: string; decision_id: string; reasons?: Reason[] }>(
     "/api/pay", { offer_token: quote.data.offer_token, idempotency_key: `demo1_${quote.data.offer_id}` },
   );
   if (!paid.data) throw new Error(`refused ${paid.error?.code}: ${paid.message}`);
+  // Asserted, because this line used to print a hardcoded "ADMIT" next to the live status code. A
+  // 202 escalate then read as the happy path and the run still ended in DEMO 1 PASSED.
+  if (paid.statusCode !== 201) {
+    const why = paid.data.reasons?.[0];
+    throw new Error(
+      `expected 201 ADMIT, got ${paid.statusCode} ${why?.code ?? ""} (rule ${why?.rule ?? "?"}).`
+      + ` The seeded mandate is Rs 9,000 and funds three ${SKU} orders — run npm run db:seed to restore it.`,
+    );
+  }
   console.log(`   ${paid.statusCode} ADMIT  order ${paid.data.order_id}  decision ${paid.data.decision_id}`);
   console.log(`   authorization_url ${paid.data.authorization_url}`);
 

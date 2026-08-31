@@ -11,14 +11,21 @@ import { verifyWebhookSignature } from "@/core/razorpay";
 
 export interface WebhookResult {
   accepted: boolean;
-  reason: "processed" | "replayed" | "unmatched" | "ignored" | "signature_invalid";
+  reason: "processed" | "replayed" | "unmatched" | "ignored" | "signature_invalid" | "mismatched";
   orderId?: string;
 }
 
 interface Payload {
   event?: string;
   payload?: {
-    payment?: { entity?: { id?: string; notes?: Record<string, string>; error_description?: string } };
+    payment?: { entity?: {
+      id?: string;
+      /** Razorpay's own order id. Server-created, so this is the binding that cannot be forged. */
+      order_id?: string;
+      amount?: number;
+      notes?: Record<string, string>;
+      error_description?: string;
+    } };
     payment_link?: { entity?: { reference_id?: string; id?: string } };
   };
 }
@@ -87,8 +94,37 @@ async function settled(
   body: Payload,
   hash: string,
 ): Promise<WebhookResult> {
-  const paymentId = body.payload?.payment?.entity?.id ?? null;
-  const settlement = await settleOrder(order.id, paymentId, { source: "webhook", rawBodySha256: hash });
+  const entity = body.payload?.payment?.entity;
+
+  // notes.vouch_order_id is what found this order, and notes are client-supplied at checkout. The
+  // gateway order id is not: we created it. Settling on the note alone let any signed webhook name
+  // any order and take its full reserved amount. The amount is the belt on top of that brace.
+  // Deny by default: once an order has a gateway order behind it, a capture that does not name it
+  // -- including one that names nothing at all -- is not this order's payment.
+  const mismatch = order.razorpayOrderId !== null
+    ? entity?.order_id !== order.razorpayOrderId
+      || (entity?.amount !== undefined && BigInt(entity.amount) !== order.amountPaise)
+    : entity?.amount !== undefined && BigInt(entity.amount) !== order.amountPaise;
+
+  if (mismatch) {
+    await writeAudit({
+      eventType: "WEBHOOK_RECEIVED",
+      actor: "razorpay",
+      orderId: order.id,
+      payload: {
+        rejected: "payment does not belong to this order",
+        claimedRazorpayOrderId: entity?.order_id ?? null,
+        expectedRazorpayOrderId: order.razorpayOrderId,
+        claimedAmountPaise: entity?.amount !== undefined ? String(entity.amount) : null,
+        expectedAmountPaise: order.amountPaise.toString(),
+        rawBodySha256: hash,
+      },
+    });
+    await markProcessed(hash);
+    return { accepted: true, reason: "mismatched", orderId: order.id };
+  }
+
+  const settlement = await settleOrder(order.id, entity?.id ?? null, { source: "webhook", rawBodySha256: hash });
 
   await markProcessed(hash);
   return { accepted: true, reason: settlement.changed ? "processed" : "replayed", orderId: order.id };

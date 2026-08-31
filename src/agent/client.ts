@@ -21,6 +21,13 @@ export interface AgentConfig {
 /** Mutable so the tool loop can attach whatever the model said just before it called a tool. */
 export interface Narration {
   lastText: string;
+  /**
+   * The last code the merchant refused a QUOTE with. A quote-time refusal writes no decision row --
+   * there is nothing to admit -- so without this a console reading the decisions log cannot tell
+   * "the merchant would not price it" apart from "the model never got there", and reported the
+   * merchant's own gate working as a failure.
+   */
+  lastQuoteRefusal?: string;
 }
 
 export class MerchantClient {
@@ -44,8 +51,12 @@ export class MerchantClient {
     return this.call<{ items: CatalogRow[] }>("/api/catalog");
   }
 
-  quote(input: { sku: string; qty: number; discount_code?: string }) {
-    return this.call<QuoteRow>("/api/quote", { ...input, raw_agent_text: this.narration.lastText.slice(0, 8000) });
+  async quote(input: { sku: string; qty: number; discount_code?: string }) {
+    const r = await this.call<QuoteRow>("/api/quote", {
+      ...input, raw_agent_text: this.narration.lastText.slice(0, 8000),
+    });
+    if (!r.data && r.error?.code) this.narration.lastQuoteRefusal = r.error.code;
+    return r;
   }
 
   pay(input: { offer_token: string; idempotency_key: string; claimed_total_paise?: string }) {

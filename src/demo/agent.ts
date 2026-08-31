@@ -4,6 +4,8 @@
 // HTTP exactly as demo2 does; this file only watches. Nothing here can influence what it decides.
 import { and, eq, gt } from "drizzle-orm";
 import { getDb } from "@/core/db";
+import { newId } from "@/core/ids";
+import { env } from "@/core/env";
 import { authorizations, decisions, misquoteEvents } from "@/core/db/schema";
 import { formatInr } from "@/core/money";
 import { balances } from "@/core/ledger";
@@ -43,11 +45,24 @@ export interface Mandate {
 export function agentStream(instruction: string, who: DemoAgent = "shopbot"): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   const since = new Date();
+  // One namespace per run. The model writes deterministic idempotency keys, so two runs of the same
+  // errand collided and the second replayed the first one's order instead of buying anything.
+  const runId = newId("request");
 
   return new ReadableStream({
     async start(controller) {
+      // The client can disconnect mid-errand -- a tab closing, or a reload.
+      // Enqueueing after that throws "Controller is already closed", which used to escape into
+      // the catch below and be filed as "the model call failed before reaching the guard". It
+      // did not fail: the run finished and nobody was listening.
+      let open = true;
       const send = (event: Record<string, unknown>) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        if (!open) return;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        } catch {
+          open = false;
+        }
       };
 
       try {
@@ -59,7 +74,8 @@ export function agentStream(instruction: string, who: DemoAgent = "shopbot"): Re
         });
 
         const run = await runBuyer({
-          baseUrl: process.env.APP_URL ?? "http://localhost:3000",
+          runId,
+          baseUrl: env().APP_URL,
           apiKey: who === "frozen" ? DEMO_KEYS.frozen : (process.env.VOUCH_AGENT_KEY ?? DEMO_KEYS.shopbot),
           instruction,
           onStep: (step) => send({ type: "step", ...step }),
@@ -76,7 +92,7 @@ export function agentStream(instruction: string, who: DemoAgent = "shopbot"): Re
       } catch (error) {
         send({ type: "error", message: error instanceof Error ? error.message : String(error) });
       } finally {
-        controller.close();
+        if (open) controller.close();
       }
     },
   });
@@ -99,7 +115,7 @@ async function misquotesSince(since: Date): Promise<Misquote[]> {
 
 /** Every verdict this run produced, in order. A refusal never becomes an order, so this is the
  *  only place some of them exist. */
-async function decisionsSince(since: Date, agentId: string): Promise<DecisionSummary[]> {
+export async function decisionsSince(since: Date, agentId: string): Promise<DecisionSummary[]> {
   const rows = await getDb().select().from(decisions)
     .where(and(eq(decisions.agentId, agentId), gt(decisions.createdAt, since)))
     .orderBy(decisions.createdAt);

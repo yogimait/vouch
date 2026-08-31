@@ -151,37 +151,50 @@ function Console({ presets, overviews, saved }: Props & { saved: Saved | null })
         <div className="flex flex-col gap-4">
           <div>
             <ChipGroup label="acting as" chips={WHO} selected={who} onSelect={setWho} />
-            <ChipGroup
-              label="try"
-              chips={presets.map((p) => ({ id: p.instruction, label: p.label, hint: p.expect }))}
-              selected={instruction}
-              onSelect={setInstruction}
-            />
 
-            {/* The button sits in the composer rather than under it: as its own row it pushed the
-                page's primary action 31px below the fold on a 760px screen. */}
-            <div className="relative">
-              <Textarea
-                value={instruction}
-                onChange={(e) => setInstruction(e.target.value)}
-                rows={3}
-                maxLength={2000}
-                placeholder="Tell the agent what to buy."
-                className="bg-raised p-4 pb-14 text-sm leading-relaxed"
-              />
-              <div className="absolute inset-x-3 bottom-3 flex items-center justify-end gap-3">
-                {running && <span className="mr-auto text-xs text-fg-3">working…</span>}
-                <Button
-                  type="button"
-                  onClick={running ? stop : start}
-                  disabled={!instruction.trim()}
-                  variant={running ? "outline" : "default"}
-                  className="rounded-[2px]"
-                >
-                  {running ? "Stop" : "Send it"}
-                </Button>
-              </div>
+            {/* The errand reads as a sentence, not a textarea. What the agent is asked matters; that
+                a person typed it does not, and a prompt box as the front door makes this look like a
+                chat product rather than a guard. The box is still here, one click away. */}
+            <p className="label mt-4">the errand</p>
+            <p className="mt-1 text-sm leading-relaxed text-fg-2">{instruction}</p>
+
+            <div className="mt-3 flex items-center gap-3">
+              <Button
+                type="button"
+                onClick={running ? stop : start}
+                disabled={!instruction.trim()}
+                variant={running ? "outline" : "default"}
+                className="rounded-[2px]"
+              >
+                {running ? "Stop" : "Send it"}
+              </Button>
+              {running && <span className="text-xs text-fg-3">working…</span>}
             </div>
+
+            {/* A native disclosure rather than useState: the platform already does this, keyboard
+                access included, and it cannot fall out of sync with a re-render. */}
+            <details className="mt-4 border-t border-hairline pt-3">
+              <summary className="label cursor-pointer select-none">advanced — write the errand yourself</summary>
+              <div className="mt-3">
+                <ChipGroup
+                  label="try"
+                  chips={presets.map((p) => ({ id: p.instruction, label: p.label, hint: p.expect }))}
+                  selected={instruction}
+                  onSelect={setInstruction}
+                />
+                {/* maxLength matches the slice in /api/demo/agent, so the box cannot promise more
+                    than the route will carry. */}
+                <Textarea
+                  value={instruction}
+                  onChange={(e) => setInstruction(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="Tell the agent what the buyer needs."
+                  className="bg-raised p-4 text-sm leading-relaxed"
+                />
+              </div>
+            </details>
+
             {view?.model && (
               <p className="mt-3 font-mono text-xs text-fg-3">{view.model} · temperature {view.temperature}</p>
             )}

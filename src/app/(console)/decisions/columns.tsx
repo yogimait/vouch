@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { DecisionRow } from "@/core/db/queries";
 import { Badge } from "@/components/ui/badge";
 import DecryptedText from "@/components/ui/decrypted-text";
@@ -26,7 +27,19 @@ export const DECISION_COLUMNS: Column<DecisionRow>[] = [
     ),
   },
   { header: "Amount", align: "right", cell: (d) => (d.amountPaise === null ? "—" : <Money paise={d.amountPaise} />) },
-  { header: "Outcome", cell: (d) => <Outcome value={d.outcome} /> },
+  {
+    header: "Outcome",
+    // An admitted order is not a paid one. The badge is the way to the page where a person
+    // finishes it, because the agent holds no credential and the row is otherwise a dead end.
+    cell: (d) =>
+      d.orderId ? (
+        <Link href={`/pay/${d.orderId}`} className="feedback hover:underline">
+          <Outcome value={d.outcome} />
+        </Link>
+      ) : (
+        <Outcome value={d.outcome} />
+      ),
+  },
   {
     header: "Reason",
     wrap: true,

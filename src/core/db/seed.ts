@@ -5,7 +5,7 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import {
-  authorizations, buyerAgents, catalogItems, merchants,
+  authorizations, buyerAgents, catalogItems, cupboardItems, merchants,
 } from "@/core/db/schema";
 import { toPaise } from "@/core/money";
 import { hashApiKey } from "@/core/guards";
@@ -28,6 +28,34 @@ export const DEMO_KEYS = {
 
 interface SeedItem { sku: string; name: string; category: string; rupees: string; stock: number; promo?: string }
 
+interface SeedShelf { id: string; name: string; start: number; reorder: number; usage: number; need: string }
+
+// The buyer's own supply cupboard. Their shelves, their words — no SKU appears here, because an
+// agent handed a part number is a form rather than an agent. It reads the catalogue and decides.
+//
+// The quantity is NOT in these sentences. opsTick composes it from the shortfall at the moment the
+// shelf crosses, because a fixed "order one" made the agent buy a single unit and the cupboard then
+// jumped back to full regardless — which is a prop, not a supply chain.
+//
+// Tuned against the Rs 9,000 mandate and the Rs 11,000 per-order cap, so all four answers are
+// reachable by consequence rather than by a button. At one unit a tick the gap IS the delay, so
+// these cross about 12s, 16s, 20s and 28s in:
+//
+//   wrist rests    3 x Rs 899   = Rs 2,697   ADMIT
+//   vertical mice  4 x Rs 2,800 = Rs 11,200  ESCALATE, over the per-order ceiling
+//   pop filters    5 units, we hold 2        never priced — the merchant's own gate, before the engine
+//   usb-c cables   7 x Rs 649   = Rs 4,543   ADMIT, and what is left of the mandate after it
+export const CUPBOARD: SeedShelf[] = [
+  { id: "cup_01J0000000000000WRISTREST", name: "Wrist rests", start: 8, reorder: 5, usage: 1,
+    need: "The support desk is running low on wrist rests." },
+  { id: "cup_01J000000000000000VERTMSE", name: "Vertical mice", start: 9, reorder: 5, usage: 1,
+    need: "The ergonomics review keeps flagging desks that need a vertical mouse." },
+  { id: "cup_01J0000000000000POPFILTER", name: "Pop filters", start: 8, reorder: 3, usage: 1,
+    need: "The podcast room records on Friday and the pop filters keep walking off." },
+  { id: "cup_01J00000000000000USBCABLE", name: "USB-C cables", start: 13, reorder: 6, usage: 1,
+    need: "Meeting rooms keep losing their USB-C cables." },
+];
+
 const CATALOG: SeedItem[] = [
   // The demo-2 target. promo_text is merchant marketing copy, not an instruction to a model —
   // that is what makes the misquote the agent's own choice rather than something we staged.
@@ -47,7 +75,9 @@ const CATALOG: SeedItem[] = [
   { sku: "SKU-L", name: "Studio Microphone", category: "audio", rupees: "8900.00", stock: 12 },
   { sku: "SKU-M", name: "Closed-Back Headphones", category: "audio", rupees: "5600.00", stock: 30 },
   { sku: "SKU-N", name: "Desk Speakers, Pair", category: "audio", rupees: "7400.00", stock: 16 },
-  { sku: "SKU-O", name: "Pop Filter", category: "audio", rupees: "550.00", stock: 90 },
+  // Deliberately short. In scope and cheap, so an order for more than two can only fail on stock —
+  // which is the one way rule 13 catalog.inventory is reachable with every earlier rule passing.
+  { sku: "SKU-O", name: "Pop Filter", category: "audio", rupees: "550.00", stock: 2 },
   // Outside the seeded authorization's category scope — the sku_not_in_scope harness class.
   { sku: "SKU-P", name: "Standing Desk Frame", category: "furniture", rupees: "18500.00", stock: 6 },
   { sku: "SKU-Q", name: "Task Chair", category: "furniture", rupees: "14200.00", stock: 9 },
@@ -61,11 +91,14 @@ export async function seed(): Promise<void> {
   const now = new Date("2026-08-24T00:00:00.000Z");
 
   console.error("truncating");
+  // Both new tables are named, not left to CASCADE: neither has a foreign key into anything else
+  // here, so cascade never reaches them and requests would pile up across reseeds.
   await db.execute(sql`
     truncate table
       audit_log, webhook_events, receipts, misquote_events, decisions,
       authorization_ledger, orders, offers, authorizations,
-      catalog_items, buyer_agents, merchants
+      catalog_items, buyer_agents, merchants,
+      purchase_requests, cupboard_items
     restart identity cascade
   `);
 
@@ -99,6 +132,20 @@ export async function seed(): Promise<void> {
     inventory: item.stock,
     promoText: item.promo ?? null,
     active: true,
+  })));
+
+  console.error(`cupboard (${CUPBOARD.length} shelves)`);
+  // A second apart, so the panel keeps the order they cross in. One shared timestamp made the sort
+  // a tie, and the four rows swapped places between ticks — on camera the whole panel jumped.
+  await db.insert(cupboardItems).values(CUPBOARD.map((shelf, i) => ({
+    id: shelf.id,
+    name: shelf.name,
+    onHand: shelf.start,
+    startOnHand: shelf.start,
+    reorderLevel: shelf.reorder,
+    usagePerTick: shelf.usage,
+    need: shelf.need,
+    createdAt: new Date(now.getTime() + i * 1000),
   })));
 
   console.error("authorization");

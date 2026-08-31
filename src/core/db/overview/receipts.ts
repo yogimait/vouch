@@ -1,6 +1,7 @@
 // The /receipts summary. Money is cast ::text and re-parsed so the driver cannot round it.
 import { desc, sql } from "drizzle-orm";
 import { getDb } from "@/core/db";
+import { signingKeys } from "@/core/crypto/keys";
 import { receipts } from "@/core/db/schema";
 import { paiseFromSql } from "@/core/money";
 import { BLOCK_NAMES, type BlockName } from "@/core/receipts/build";
@@ -67,7 +68,9 @@ export async function receiptsOverview(): Promise<ReceiptsOverview> {
       .from(receipts).orderBy(desc(receipts.signedAt)).limit(SAMPLE);
 
   const t = totals[0];
-  const publicKey = process.env.VOUCH_SIGNING_PUBLIC_KEY ?? "";
+  // signingKeys() rather than `?? ""`: an unset key made this page report 0 of N receipts valid,
+  // which is a tamper alarm raised by a missing environment variable.
+  const publicKey = signingKeys().publicKey.export({ type: "spki", format: "der" }).toString("base64");
   const present = new Map(blockRows.map((r) => [String(r.block), Number(r.n)]));
 
   return {
