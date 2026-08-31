@@ -8,7 +8,8 @@ import { setOrderState } from "@/core/orders/state";
 import { issueReceipt } from "@/core/receipts/build";
 
 export interface SettleEvidence {
-  source: "webhook" | "polled";
+  /** "human" is a person declining on the approval page — the only source that is not a payment. */
+  source: "webhook" | "polled" | "human";
   rawBodySha256?: string;
 }
 
