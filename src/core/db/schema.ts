@@ -267,3 +267,47 @@ export interface DecisionReason {
   expected?: string | string[];
   escalatable?: boolean;
 }
+
+// The buyer's own supply cupboard, and why their agent turns up at our counter. Quantities only —
+// a request carries no price and no budget, because pay() has no amount parameter and a budget
+// column here would hand back the hole that removing one closed.
+export const purchaseRequestSource = pgEnum("purchase_request_source", ["REORDER", "STAFF"]);
+export const purchaseRequestStatus = pgEnum("purchase_request_status", ["OPEN", "RUNNING", "CLOSED"]);
+
+// No foreign key to catalog_items, deliberately: their cupboard is not our shelf, and a key here
+// would invite handing the agent a SKU. `need` says what a person needs; the agent finds the item.
+export const cupboardItems = pgTable("cupboard_items", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  onHand: integer("on_hand").notNull(),
+  // The bar's denominator, and what a floor reset restores. on_hand alone cannot say how full is full.
+  startOnHand: integer("start_on_hand").notNull(),
+  reorderLevel: integer("reorder_level").notNull(),
+  // The calibration knob: staggering these is what makes the crossings arrive one at a time.
+  usagePerTick: integer("usage_per_tick").notNull().default(1),
+  need: text("need").notNull(),
+  createdAt: createdAt(),
+});
+
+// One queue for both triggers, so the loop has one place to be idempotent.
+export const purchaseRequests = pgTable("purchase_requests", {
+  id: text("id").primaryKey(),
+  source: purchaseRequestSource("source").notNull(),
+  // Soft link, no FK — a staff request belongs to no shelf. decisions does the same for its three.
+  cupboardItemId: text("cupboard_item_id"),
+  raisedBy: text("raised_by").notNull(),
+  need: text("need").notNull(),
+  status: purchaseRequestStatus("status").notNull().default("OPEN"),
+  // Nullable on purpose: a quote-time refusal writes no decision at all, so there is no outcome to
+  // record and inventing one would claim the engine ruled on something it never saw.
+  outcome: decisionOutcome("outcome"),
+  decisionId: text("decision_id"),
+  orderId: text("order_id"),
+  words: text("words"),
+  createdAt: createdAt(),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+}, (t) => [
+  index("requests_status_idx").on(t.status, t.createdAt),
+  // One open errand per shelf. The insert already checks, but a check races the next tick.
+  uniqueIndex("requests_open_item_unique").on(t.cupboardItemId).where(sql`status <> 'CLOSED'`),
+]);

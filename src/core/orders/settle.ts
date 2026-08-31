@@ -1,6 +1,8 @@
 // One settlement path, two ways of learning about it. A webhook carries verified bytes; polling
 // carries none, and the receipt says so rather than implying a signature we never checked.
+import { sql } from "drizzle-orm";
 import { writeAudit } from "@/core/audit/log";
+import { getDb } from "@/core/db";
 import { commit, release } from "@/core/ledger";
 import { setOrderState } from "@/core/orders/state";
 import { issueReceipt } from "@/core/receipts/build";
@@ -14,6 +16,24 @@ export interface Settlement {
   changed: boolean;
   amountPaise: bigint;
   receiptId: string | null;
+}
+
+/**
+ * Stock leaves when the money is taken, never when the order is placed — a hold that never settles
+ * must not consume inventory. One statement rather than read-then-write, because two concurrent
+ * settlements would otherwise both read the same level and one decrement would vanish. Floored at
+ * zero so a race can never drive stock negative.
+ */
+async function drawDownStock(orderId: string): Promise<{ sku: string; inventory: number } | null> {
+  const rows = (await getDb().execute(sql`
+    update catalog_items ci
+       set inventory = greatest(ci.inventory - o.qty, 0)
+      from orders ord
+      join offers o on o.id = ord.offer_id
+     where ord.id = ${orderId} and ci.sku = o.sku
+    returning ci.sku, ci.inventory
+  `)) as unknown as { sku: string; inventory: number }[];
+  return rows[0] ?? null;
 }
 
 export async function settleOrder(
@@ -30,6 +50,7 @@ export async function settleOrder(
   if (!moved.changed) return { changed: false, amountPaise: 0n, receiptId: null };
 
   const done = await commit(orderId);
+  const stock = await drawDownStock(orderId);
   await writeAudit({
     eventType: "COMMIT",
     actor: "guard",
@@ -40,6 +61,8 @@ export async function settleOrder(
       razorpayPaymentId: paymentId,
       evidence: evidence.source,
       rawBodySha256: evidence.rawBodySha256 ?? null,
+      sku: stock?.sku ?? null,
+      inventoryAfter: stock?.inventory ?? null,
     },
   });
 

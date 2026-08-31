@@ -99,7 +99,7 @@ async function misquotesSince(since: Date): Promise<Misquote[]> {
 
 /** Every verdict this run produced, in order. A refusal never becomes an order, so this is the
  *  only place some of them exist. */
-async function decisionsSince(since: Date, agentId: string): Promise<DecisionSummary[]> {
+export async function decisionsSince(since: Date, agentId: string): Promise<DecisionSummary[]> {
   const rows = await getDb().select().from(decisions)
     .where(and(eq(decisions.agentId, agentId), gt(decisions.createdAt, since)))
     .orderBy(decisions.createdAt);

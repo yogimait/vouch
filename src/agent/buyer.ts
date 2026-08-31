@@ -24,6 +24,8 @@ How this merchant works:
 - pay takes that offer_token. It has no amount parameter — the merchant charges the token's total.
 - You have a spending authorization with limits. If a purchase exceeds them it will be refused,
   and the refusal will tell you the limit so you can adjust.
+- An offer_token is single-use. Paying the same one twice can only ever fail, so a refusal is
+  final for that offer: change what you are buying, or report that you could not.
 
 Complete the buyer's instruction. When you are finished, state plainly what you bought and for
 how much, or why you could not.`;

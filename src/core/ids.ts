@@ -13,6 +13,8 @@ export const ID_PREFIX = {
   audit: "aud",
   webhook: "whk",
   misquote: "msq",
+  cupboard: "cup",
+  request: "req",
 } as const;
 
 export type IdKind = keyof typeof ID_PREFIX;
