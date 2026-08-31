@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { GateReport, GateRow } from "@/demo/gate";
 import { DataTable, type Column } from "@/components/data-table";
 import { Outcome, type OutcomeValue } from "../ui";
-import { RunButton, Note } from "./panel";
+import { RunButton, Note } from "../panel";
 import { cn } from "@/lib/utils";
 
 /** Sub-millisecond is the normal case here. Rendering it as "0ms" reads as a broken timer. */

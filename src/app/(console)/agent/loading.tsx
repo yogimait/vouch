@@ -30,15 +30,18 @@ export default function AgentLoading() {
         ))}
       </div>
 
+      {/* The two agent chips, the errand as two lines of prose, one button, then the collapsed
+          disclosure. The preset chips and the textarea are inside it, so they are not stood in for —
+          a skeleton promising a box the page no longer opens with moves everything at the swap. */}
       <div className="mt-4 shrink-0">
-        <div className="mb-3 flex gap-2">
+        <div className="mb-4 flex gap-2">
           {[16, 20].map((w) => <Skeleton key={w} className="h-7 rounded-[2px]" style={{ width: `${w * 4}px` }} />)}
         </div>
-        <div className="mb-3 flex flex-wrap gap-2">
-          {[28, 32, 40, 30].map((w) => <Skeleton key={w} className="h-7 rounded-[2px]" style={{ width: `${w * 4}px` }} />)}
-        </div>
-        <Skeleton className="h-[4.5rem] w-full rounded-[3px]" />
+        <Skeleton className="h-3 w-20 rounded-[2px]" />
+        <Skeleton className="mt-2 h-4 w-full rounded-[2px]" />
+        <Skeleton className="mt-1.5 h-4 w-3/4 rounded-[2px]" />
         <Skeleton className="mt-3 h-9 w-28 rounded-[2px]" />
+        <Skeleton className="mt-4 h-3 w-56 rounded-[2px]" />
       </div>
 
       <section className="mt-3 flex flex-1 flex-col rounded-[3px] border border-hairline lg:min-h-0">
