@@ -208,7 +208,10 @@ export function LiveOps({ opening, enabled }: { opening: OpsView; enabled: boole
 }
 
 function Request({ row }: { row: OpsView["requests"][number] }) {
-  const failed = row.status === "CLOSED" && row.outcome === null;
+  const closed = row.status === "CLOSED" && row.outcome === null;
+  // Three different things used to render as "not answered". Only one of them is a failure.
+  const notPriced = closed && row.quoteRefusal !== null;
+  const failed = closed && row.quoteRefusal === null;
 
   return (
     <div className="border-b border-hairline px-4 py-3 last:border-0">
@@ -218,13 +221,21 @@ function Request({ row }: { row: OpsView["requests"][number] }) {
         <span className="shrink-0 text-right">
           {row.outcome
             ? <Verdict outcome={row.outcome} orderId={row.orderId} />
-            : <span className={cn("font-mono text-[10px]", failed ? "text-refuse" : "text-fg-3")}>
-                {failed ? "not answered" : row.status === "RUNNING" ? "working…" : "queued"}
-              </span>}
+            : notPriced
+              ? <span className="font-mono text-[10px] text-escalate">not priced</span>
+              : <span className={cn("font-mono text-[10px]", failed ? "text-refuse" : "text-fg-3")}>
+                  {failed ? "not answered" : row.status === "RUNNING" ? "working…" : "queued"}
+                </span>}
         </span>
       </div>
       {/* Said out loud rather than hidden behind a hover: a refusal the guard made and a call that
           never arrived look identical otherwise, and only one of them is the product working. */}
+      {notPriced && (
+        <p className="mt-1.5 text-[11px] leading-relaxed text-escalate/80">
+          <span className="font-mono">{row.quoteRefusal}</span>
+          {" — the merchant would not sign a price for it, so the engine was never asked."}
+        </p>
+      )}
       {failed && row.words && (
         <p className="mt-1.5 text-[11px] leading-relaxed text-refuse/70">{row.words}</p>
       )}

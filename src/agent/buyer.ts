@@ -10,6 +10,8 @@ import { MerchantClient, type Narration } from "@/agent/client";
 
 export interface BuyerRun {
   finishReason: string;
+  /** Set when the merchant refused to price something. See Narration.lastQuoteRefusal. */
+  quoteRefusal: string | null;
   text: string;
   steps: { text: string; reasoning: string; toolCalls: { name: string; input: unknown }[]; toolResults: unknown[] }[];
   orderId: string | null;
@@ -26,6 +28,8 @@ How this merchant works:
   and the refusal will tell you the limit so you can adjust.
 - An offer_token is single-use. Paying the same one twice can only ever fail, so a refusal is
   final for that offer: change what you are buying, or report that you could not.
+- Buy the quantity the instruction asks for in one order. Two orders for the same thing cost the
+  buyer twice in per-order overhead and are not what was asked.
 
 Complete the buyer's instruction. When you are finished, state plainly what you bought and for
 how much, or why you could not.`;
@@ -36,6 +40,14 @@ export async function runBuyer(options: {
   instruction: string;
   model?: string;
   temperature?: number;
+  /**
+   * Namespaces the model's idempotency key to this errand. The model writes deterministic keys --
+   * "meetingroom2-usb-cable-20230831-001" was produced identically on runs three hours apart -- so
+   * without this the second errand replayed the first one's order, bought nothing, and reported
+   * success. Scoping keeps a genuine retry inside one errand idempotent, which is the point of the
+   * parameter, while making a collision across errands impossible.
+   */
+  runId?: string;
   /** Called as each step finishes, so a console can show the run rather than its result. */
   onStep?: (step: {
     index: number;
@@ -107,7 +119,8 @@ export async function runBuyer(options: {
           claimed_total_paise: z.string().optional(),
         }),
         execute: async (input) => {
-          const r = await client.pay(input);
+          const key = options.runId ? `${options.runId}:${input.idempotency_key}` : input.idempotency_key;
+          const r = await client.pay({ ...input, idempotency_key: key });
           if (r.data?.order_id) orderId = r.data.order_id;
           return r.data ?? { refused: true, code: r.error?.code, message: r.message, details: r.error?.details };
         },
@@ -117,6 +130,7 @@ export async function runBuyer(options: {
 
   return {
     finishReason: result.finishReason,
+    quoteRefusal: narration.lastQuoteRefusal ?? null,
     text: result.text,
     steps: result.steps.map((s) => ({
       text: s.text,

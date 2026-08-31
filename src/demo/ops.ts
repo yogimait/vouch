@@ -38,6 +38,8 @@ export interface RequestRow {
   need: string;
   status: "OPEN" | "RUNNING" | "CLOSED";
   outcome: "ADMIT" | "ESCALATE" | "REFUSE" | null;
+  /** Set when the merchant would not price it. An answer, and not one the engine gave. */
+  quoteRefusal: string | null;
   words: string | null;
   orderId: string | null;
 }
@@ -73,8 +75,9 @@ export async function opsTick(): Promise<OpsView> {
     update cupboard_items
        set on_hand = greatest(on_hand - usage_per_tick, reorder_level)
      where on_hand > reorder_level
-    returning id, need, on_hand, reorder_level
-  `)) as unknown as { id: string; need: string; on_hand: number; reorder_level: number }[];
+    returning id, need, on_hand, reorder_level, start_on_hand
+  `)) as unknown as
+    { id: string; need: string; on_hand: number; reorder_level: number; start_on_hand: number }[];
 
   const crossed = shelves.filter((s) => s.on_hand <= s.reorder_level);
   if (crossed.length > 0) {
@@ -89,12 +92,25 @@ export async function opsTick(): Promise<OpsView> {
         source: "REORDER" as const,
         cupboardItemId: s.id,
         raisedBy: "cupboard",
-        need: s.need,
+        need: askFor(s),
       }))).onConflictDoNothing();
     }
   }
 
   return opsOverview();
+}
+
+/**
+ * The errand in the buyer's own words, with the number they are short.
+ *
+ * The quantity has to be in the sentence: the shelf's own prose used to end "Order one", so the
+ * agent dutifully bought one unit and the cupboard then jumped back to full anyway. Buying one and
+ * receiving seven is not a supply chain, it is a prop.
+ */
+export function askFor(shelf: { need: string; on_hand: number; start_on_hand: number }): string {
+  const short = shelf.start_on_hand - shelf.on_hand;
+  return `${shelf.need} We are down to ${shelf.on_hand} and normally keep ${shelf.start_on_hand}, `
+    + `so order ${short}.`;
 }
 
 /**
@@ -140,7 +156,8 @@ export async function opsOverview(): Promise<OpsView> {
 
       (select coalesce(json_agg(r order by r.created_at desc), '[]')::text
          from (
-           select id, source, raised_by as "raisedBy", need, status, outcome, words,
+           select id, source, raised_by as "raisedBy", need, status, outcome,
+                  quote_refusal as "quoteRefusal", words,
                   order_id as "orderId", created_at
              from purchase_requests
             order by created_at desc
@@ -209,15 +226,19 @@ async function dbNow(): Promise<Date> {
 }
 
 /**
- * The delivery arrives, so the shelf goes back up — but only when something is actually coming.
- * A refusal delivers nothing, and refilling on one would draw a cupboard that restocks itself out
- * of orders the merchant declined.
+ * The delivery arrives, so the shelf goes up by what was actually bought — never straight to full.
+ *
+ * A refusal delivers nothing, and refilling on one would draw a cupboard that restocks itself out of
+ * orders the merchant declined. Under-buy and the shelf is still below its line, so it asks again on
+ * the next tick: that is the floor correcting itself, not a loop.
  */
 async function refillShelfFor(requestId: string): Promise<void> {
   await getDb().execute(sql`
     update cupboard_items c
-       set on_hand = c.start_on_hand
+       set on_hand = least(c.on_hand + f.qty, c.start_on_hand)
       from purchase_requests r
+      join orders o on o.id = r.order_id
+      join offers f on f.id = o.offer_id
      where r.id = ${requestId} and r.cupboard_item_id = c.id
        and r.outcome in ('ADMIT', 'ESCALATE')
   `);
@@ -233,8 +254,18 @@ export function opsStream(requestId: string): ReadableStream<Uint8Array> {
 
   return new ReadableStream({
     async start(controller) {
+      // The client can disconnect mid-errand -- a tab closing, or the tick's own onerror.
+      // Enqueueing after that throws "Controller is already closed", which used to escape into
+      // the catch below and be filed as "the model call failed before reaching the guard". It
+      // did not fail: the run finished and nobody was listening.
+      let open = true;
       const send = (event: Record<string, unknown>) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        if (!open) return;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        } catch {
+          open = false;
+        }
       };
 
       try {
@@ -261,6 +292,7 @@ export function opsStream(requestId: string): ReadableStream<Uint8Array> {
           baseUrl: env().APP_URL,
           apiKey: process.env.VOUCH_AGENT_KEY ?? DEMO_KEYS.shopbot,
           instruction: need,
+          runId: requestId,
           onStep: (step) => send({ type: "step", ...step }),
         });
 
@@ -272,13 +304,18 @@ export function opsStream(requestId: string): ReadableStream<Uint8Array> {
         await db.execute(sql`
           update purchase_requests
              set status = 'CLOSED', closed_at = now(),
-                 outcome = ${last?.outcome ?? null}, words = ${run.text.slice(0, 2000)},
+                 outcome = ${last?.outcome ?? null},
+                 -- Only when the engine never ruled. A run that was refused a quote and then bought
+                 -- something else did reach the guard, and the verdict is the honest headline.
+                 quote_refusal = ${last ? null : run.quoteRefusal},
+                 words = ${run.text.slice(0, 2000)},
                  order_id = ${run.orderId}
            where id = ${requestId}
         `);
         await refillShelfFor(requestId);
 
-        send({ type: "done", outcome: last?.outcome ?? null, code: last?.code ?? null,
+        send({ type: "done", outcome: last?.outcome ?? null,
+               code: last?.code ?? (last ? null : run.quoteRefusal),
                rule: last?.rule ?? null, words: run.text, view: await opsOverview() });
       } catch (error) {
         // Closed with no outcome, deliberately. A guard that gets credit for an API timeout is
@@ -291,7 +328,7 @@ export function opsStream(requestId: string): ReadableStream<Uint8Array> {
         `).catch(() => {});
         send({ type: "error", message });
       } finally {
-        controller.close();
+        if (open) controller.close();
       }
     },
   });

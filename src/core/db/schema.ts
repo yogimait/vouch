@@ -307,6 +307,10 @@ export const purchaseRequests = pgTable("purchase_requests", {
   // Nullable on purpose: a quote-time refusal writes no decision at all, so there is no outcome to
   // record and inventing one would claim the engine ruled on something it never saw.
   outcome: decisionOutcome("outcome"),
+  // The code the merchant refused to QUOTE with, when it did. A quote refusal is an answer -- the
+  // merchant's own gate, before the engine -- and without it a row that was correctly turned away
+  // looked identical to one where the model never got there.
+  quoteRefusal: text("quote_refusal"),
   decisionId: text("decision_id"),
   orderId: text("order_id"),
   words: text("words"),

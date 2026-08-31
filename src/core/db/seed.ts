@@ -33,25 +33,27 @@ interface SeedShelf { id: string; name: string; start: number; reorder: number; 
 // The buyer's own supply cupboard. Their shelves, their words — no SKU appears here, because an
 // agent handed a part number is a form rather than an agent. It reads the catalogue and decides.
 //
-// Staggered by start and reorder alone, so the story arrives one beat at a time rather than as four
-// simultaneous alarms. Ordered here by when each one crosses.
+// The quantity is NOT in these sentences. opsTick composes it from the shortfall at the moment the
+// shelf crosses, because a fixed "order one" made the agent buy a single unit and the cupboard then
+// jumped back to full regardless — which is a prop, not a supply chain.
 //
-// The gaps are deliberately wide. A shelf refills when its errand closes, so (start - reorder)
-// ticks is the cycle length, and a short cycle ran the model continuously until Groq rate-limited
-// it. At four seconds a tick these land roughly 30s, 50s, 60s and 80s apart.
+// Tuned against the Rs 9,000 mandate and the Rs 11,000 per-order cap, so all four answers are
+// reachable by consequence rather than by a button. At one unit a tick the gap IS the delay, so
+// these cross about 12s, 16s, 20s and 28s in:
+//
+//   wrist rests    3 x Rs 899   = Rs 2,697   ADMIT
+//   vertical mice  4 x Rs 2,800 = Rs 11,200  ESCALATE, over the per-order ceiling
+//   pop filters    5 units, we hold 2        never priced — the merchant's own gate, before the engine
+//   usb-c cables   7 x Rs 649   = Rs 4,543   ADMIT, and what is left of the mandate after it
 export const CUPBOARD: SeedShelf[] = [
-  { id: "cup_01J0000000000000WRISTREST", name: "Wrist rests", start: 12, reorder: 5, usage: 1,
-    need: "The support desk has run out of wrist rests. Order one." },
-  { id: "cup_01J00000000000000USBCABLE", name: "USB-C cables", start: 18, reorder: 5, usage: 1,
-    need: "Meeting room 2 keeps losing its USB-C cables. Order a replacement." },
-  // Asks for five against the two we hold, so this one is refused at the counter before it is ever
-  // priced — the merchant's own gate, not the engine's.
-  { id: "cup_01J0000000000000POPFILTER", name: "Pop filters", start: 17, reorder: 2, usage: 1,
-    need: "The podcast room records on Friday and has no pop filters at all. We need five of them." },
-  // The deepest shelf and the dearest item, so it asks last and asks repeatedly. Each answered
-  // errand spends Rs 2,800 of the Rs 9,000 mandate, so the same request eventually escalates.
-  { id: "cup_01J000000000000000VERTMSE", name: "Vertical mice", start: 22, reorder: 2, usage: 1,
-    need: "The ergonomics review flagged another desk: that person needs a vertical mouse. Order one." },
+  { id: "cup_01J0000000000000WRISTREST", name: "Wrist rests", start: 8, reorder: 5, usage: 1,
+    need: "The support desk is running low on wrist rests." },
+  { id: "cup_01J000000000000000VERTMSE", name: "Vertical mice", start: 9, reorder: 5, usage: 1,
+    need: "The ergonomics review keeps flagging desks that need a vertical mouse." },
+  { id: "cup_01J0000000000000POPFILTER", name: "Pop filters", start: 8, reorder: 3, usage: 1,
+    need: "The podcast room records on Friday and the pop filters keep walking off." },
+  { id: "cup_01J00000000000000USBCABLE", name: "USB-C cables", start: 13, reorder: 6, usage: 1,
+    need: "Meeting rooms keep losing their USB-C cables." },
 ];
 
 const CATALOG: SeedItem[] = [
