@@ -41,9 +41,13 @@ yarn-error.log*
 next-env.d.ts
 !.env.example
 
-# Probe/demo artefacts: regenerable, ~14MB, and the dumped URLs carry live session tokens.
-# The durable proof is the captured payment id recorded in docs/FAILURES.md.
-evidence/
+# Probe/demo artefacts: regenerable, ~400MB, and the dumped URLs carry live session tokens.
+# The durable proof is the captured payment id recorded in FAILURES.md.
+# evidence/* not evidence/, because git will not re-include a file inside an excluded directory.
+evidence/*
+# ...except a small curated set, so someone who clones can check the claims without running
+# anything. Four small JSON files: no traces, no video, no URL carrying a session.
+!evidence/public/
 
 # Scratch MCP handshake input, written when probing the stdio server.
 mcpreq.jsonl

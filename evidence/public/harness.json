@@ -1,0 +1,1688 @@
+{
+  "generatedFrom": "2026-08-25T12:00:00.000Z",
+  "perClass": 15,
+  "total": 210,
+  "correct": 210,
+  "attempts": [
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 664.7
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 154.1
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 22.9
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 10.6
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 10.9
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 6.3
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 5.5
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 5.5
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 10.9
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 11.6
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 8.7
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 8.2
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 4.4
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 4.8
+    },
+    {
+      "label": "clean",
+      "expectedOutcome": "ADMIT",
+      "expectedCode": null,
+      "outcome": "ADMIT",
+      "code": null,
+      "micros": 3.7
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 48.1
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 4.3
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.5
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.3
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.2
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.2
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.1
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.2
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.5
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 4.8
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.7
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.2
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.3
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.1
+    },
+    {
+      "label": "agent_frozen",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AGENT_FROZEN",
+      "outcome": "REFUSE",
+      "code": "AGENT_FROZEN",
+      "micros": 1.1
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 20
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 3
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.3
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.2
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.2
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.2
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.2
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 109.5
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.3
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.2
+    },
+    {
+      "label": "offer_signature_invalid",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_SIGNATURE_INVALID",
+      "outcome": "REFUSE",
+      "code": "OFFER_SIGNATURE_INVALID",
+      "micros": 1.3
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 1572
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 22.7
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 7.6
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 7.5
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 3.9
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 3.9
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 10.5
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 3.8
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 3.8
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 6.4
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 3.9
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 3.9
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 6.2
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 4.2
+    },
+    {
+      "label": "offer_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "OFFER_EXPIRED",
+      "micros": 3.9
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 9.8
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 6.3
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 4
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.8
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.7
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.6
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.6
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 3.9
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.5
+    },
+    {
+      "label": "offer_wrong_agent",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_WRONG_AGENT",
+      "outcome": "REFUSE",
+      "code": "OFFER_WRONG_AGENT",
+      "micros": 1.7
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 19.4
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 8.4
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 6.3
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 6.1
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 5.1
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 3
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 3
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 5
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 3.8
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 5.2
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 2.9
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 2.9
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 5.6
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 3.1
+    },
+    {
+      "label": "offer_replayed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OFFER_ALREADY_USED",
+      "outcome": "REFUSE",
+      "code": "OFFER_ALREADY_USED",
+      "micros": 3
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 1191.4
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 58.1
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 19.5
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 9.3
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 24.3
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 13.2
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 10.2
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 7.8
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 6.4
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 6.6
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 12.1
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 7.6
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 6
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 5.1
+    },
+    {
+      "label": "misquote",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "MISQUOTE",
+      "outcome": "REFUSE",
+      "code": "MISQUOTE",
+      "micros": 4.9
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 5.1
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 3.5
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.4
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.4
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.5
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.2
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.3
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.4
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.4
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.5
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.4
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.2
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.3
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.2
+    },
+    {
+      "label": "authorization_not_confirmed",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_NOT_CONFIRMED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_NOT_CONFIRMED",
+      "micros": 1.3
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 13.1
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 10.8
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 5.9
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4.4
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4.8
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4.1
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4.1
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4.1
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4.2
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 5.3
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4.2
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4.1
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 4
+    },
+    {
+      "label": "authorization_expired",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "AUTHORIZATION_EXPIRED",
+      "outcome": "REFUSE",
+      "code": "AUTHORIZATION_EXPIRED",
+      "micros": 11.9
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 6.2
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 3.4
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 2.1
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.7
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.7
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 2.5
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.7
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.7
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.7
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 2.1
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.6
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.7
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 2.2
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.7
+    },
+    {
+      "label": "sku_out_of_scope",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "SKU_NOT_AUTHORIZED",
+      "outcome": "REFUSE",
+      "code": "SKU_NOT_AUTHORIZED",
+      "micros": 1.6
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 21.7
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 8.5
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 7.6
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 7.4
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 8.7
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 11.1
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 7.5
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 5.7
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 5.9
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 5.7
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 5.8
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 5.5
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 6
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 5.5
+    },
+    {
+      "label": "per_order_cap",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "PER_ORDER_LIMIT_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "PER_ORDER_LIMIT_EXCEEDED",
+      "micros": 5.7
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 13
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 9.3
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 8
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 12.1
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 10.4
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 13.1
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 5.7
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 6.2
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 5.8
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 6
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 6.1
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 6.1
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 5.7
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 6.4
+    },
+    {
+      "label": "headroom_exceeded",
+      "expectedOutcome": "ESCALATE",
+      "expectedCode": "AUTHORIZATION_EXCEEDED",
+      "outcome": "ESCALATE",
+      "code": "AUTHORIZATION_EXCEEDED",
+      "micros": 5.7
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 9.1
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 5.3
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 4.6
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 4.1
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 73.9
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 8.7
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 4.2
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 2.7
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 2.3
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 2.7
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 2.3
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 2.3
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 2.6
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 2.2
+    },
+    {
+      "label": "velocity",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "VELOCITY_EXCEEDED",
+      "outcome": "REFUSE",
+      "code": "VELOCITY_EXCEEDED",
+      "micros": 2.4
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 5.9
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 4.5
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 4.5
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 4.5
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 5.9
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 6.5
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 4.6
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 2.8
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 2.7
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 2.7
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 2.5
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 4.5
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 2.5
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 6.3
+    },
+    {
+      "label": "out_of_stock",
+      "expectedOutcome": "REFUSE",
+      "expectedCode": "OUT_OF_STOCK",
+      "outcome": "REFUSE",
+      "code": "OUT_OF_STOCK",
+      "micros": 2.5
+    }
+  ]
+}
