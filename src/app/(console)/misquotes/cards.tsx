@@ -1,6 +1,7 @@
 import type { MisquotesOverview } from "@/core/db/overview/misquotes";
 import { formatInr } from "@/core/money";
 import { Big, BarRow, Figure, HairRow, Note, Quadrant, StatCard } from "../cards";
+import { sourceLabel } from "../format";
 
 /** Server, not client: gapPaise is a bigint, and formatting it here keeps one off the RSC wire. */
 
@@ -41,7 +42,7 @@ function Sources({ sources }: { sources: MisquotesOverview["sources"] }) {
       <div className="mt-3 flex flex-col">
         {sources.length === 0
           ? <p className="text-sm text-fg-3">Nothing recorded yet.</p>
-          : sources.map((s) => <HairRow key={s.source} name={s.source} value={s.n} />)}
+          : sources.map((s) => <HairRow key={s.source} name={sourceLabel(s.source)} value={s.n} />)}
       </div>
       <Note>A model&rsquo;s attempt and a scripted one are counted apart on purpose; never summed.</Note>
     </StatCard>
@@ -57,7 +58,7 @@ function Words({ totals, sources }: Pick<MisquotesOverview, "totals" | "sources"
       />
       <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
         {sources.map((s) => (
-          <Figure key={s.source} label={s.source} value={`${s.withText} / ${s.n}`} />
+          <Figure key={s.source} label={sourceLabel(s.source)} value={`${s.withText} / ${s.n}`} />
         ))}
       </div>
       <Note>A scripted call has no words to keep; only a model leaves any.</Note>

@@ -21,6 +21,22 @@ export function pct(part: number, whole: number): string {
   return `${Math.min(100, (part / whole) * 100)}%`;
 }
 
+/**
+ * What a source is called on screen. decisions.source records how a call arrived, and the four values
+ * it can hold are ours, not a merchant's — nobody reading their own gate should have to know what a
+ * harness is. Renamed here rather than in the column: the stored value is what the tests assert on.
+ */
+const SOURCE_LABELS: Record<string, string> = {
+  harness: "conformance run",
+  http: "live API",
+  llm: "AI buyer",
+  mcp: "MCP client",
+};
+
+export function sourceLabel(source: string): string {
+  return SOURCE_LABELS[source] ?? source;
+}
+
 /** The engine resolves well under a millisecond. Rendering that as "0ms" reads as a broken timer. */
 export function micros(v: number | null): string {
   if (v === null) return "—";

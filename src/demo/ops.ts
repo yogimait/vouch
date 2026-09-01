@@ -12,7 +12,7 @@ import { runBuyer } from "@/agent/buyer";
 import { demoAgent } from "@/demo/agents";
 import { decisionsSince } from "@/demo/agent";
 import { expireStaleOrders } from "@/core/orders/expire";
-import { DEMO_KEYS } from "@/core/db/seed";
+import { CATALOG, DEMO_KEYS } from "@/core/db/seed";
 import { formatInr } from "@/core/money";
 
 export interface Shelf {
@@ -385,6 +385,33 @@ function plainly(error: unknown): string {
   }
   const first = raw.split("\n")[0];
   return first.length > 200 ? `${first.slice(0, 200)}...` : first;
+}
+
+/**
+ * Goods inwards, for our own warehouse rather than their cupboard.
+ *
+ * Our stock only ever falls: drawDownStock takes the units at settlement and nothing puts them back,
+ * so a floor left running long enough sells a line out, and a line at zero is refused a quote for
+ * good — which reads as a broken catalogue rather than as a merchant who needs to reorder.
+ *
+ * Every line goes back to the level it was stocked at, never to a round number. SKU-O is seeded at
+ * two on purpose: it is the only way the catalog.inventory rule is reachable with every earlier rule
+ * passing, and topping it up to a comfortable figure would quietly delete that case.
+ *
+ * `c.inventory < v.stock` so this only ever adds. An operator clicking it twice, or clicking it
+ * while an admitted order is waiting to draw its units down, cannot walk a count backwards.
+ */
+export async function receiveStock(): Promise<OpsView> {
+  await getDb().execute(sql`
+    update catalog_items c
+       set inventory = v.stock
+      from unnest(
+             ${sql.param(CATALOG.map((i) => i.sku))}::text[],
+             ${sql.param(CATALOG.map((i) => String(i.stock)))}::int[]
+           ) as v(sku, stock)
+     where c.sku = v.sku and c.inventory < v.stock
+  `);
+  return opsOverview();
 }
 
 /**

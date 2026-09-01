@@ -25,8 +25,31 @@ export interface DecisionRow {
   matchedRules: string[];
   latencyMs: number;
   source: string;
+  /** What became of the order this decision created. Null when it created none — most refusals. */
+  payment: PaymentState | null;
   policyVersion: number;
   engineVersion: string;
+}
+
+/**
+ * An admission is not a payment. The console said ADMIT and then nothing, which is the one thing a
+ * merchant actually wants to know about an admitted order, so it is read back out of the order.
+ */
+export type PaymentState = "PAID" | "AWAITING_PAYMENT" | "AWAITING_APPROVAL" | "EXPIRED" | "FAILED";
+
+type OrderState = (typeof orders.$inferSelect)["state"];
+
+export function paymentOf(state: OrderState | null, overdue: boolean | null): PaymentState | null {
+  if (state === null) return null;
+  // PAID first, and deliberately: EXPIRED -> PAID is a legal transition, so a capture that landed
+  // after the deadline is paid, not expired. Reading the clock before the state would deny it.
+  if (state === "PAID") return "PAID";
+  if (state === "FAILED") return "FAILED";
+  if (state === "EXPIRED") return "EXPIRED";
+  // The sweep runs once a day on Hobby and on every /live tick, so a hold can be well past its
+  // deadline and still read ESCALATED. Trust the clock over a row nothing has got to yet.
+  if (overdue) return "EXPIRED";
+  return state === "ESCALATED" ? "AWAITING_APPROVAL" : "AWAITING_PAYMENT";
 }
 
 export async function listDecisions(limit = 50): Promise<DecisionRow[]> {
@@ -46,6 +69,10 @@ export async function listDecisions(limit = 50): Promise<DecisionRow[]> {
       matchedRules: decisions.matchedRules,
       latencyMs: decisions.latencyMs,
       source: decisions.source,
+      orderState: orders.state,
+      // The database's clock, never this machine's — the console may be served from another host.
+      // coalesced because the join misses on every refusal, and null is not overdue.
+      overdue: sql<boolean>`coalesce(${orders.expiresAt} < now(), false)`,
       policyVersion: decisions.policyVersion,
       engineVersion: decisions.engineVersion,
     })
@@ -53,13 +80,15 @@ export async function listDecisions(limit = 50): Promise<DecisionRow[]> {
     .leftJoin(buyerAgents, eq(decisions.agentId, buyerAgents.id))
     .leftJoin(offers, eq(decisions.offerId, offers.id))
     .leftJoin(catalogItems, eq(offers.sku, catalogItems.sku))
+    .leftJoin(orders, eq(decisions.orderId, orders.id))
     .orderBy(desc(decisions.createdAt))
     .limit(limit);
 
-  return rows.map((r) => ({
+  return rows.map(({ orderState, overdue, ...r }) => ({
     ...r,
     agentName: r.agentName ?? "unknown",
     amountPaise: r.amount === null ? null : paiseFromSql(r.amount),
+    payment: paymentOf(orderState, overdue),
   }));
 }
 

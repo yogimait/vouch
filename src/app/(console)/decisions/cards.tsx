@@ -2,7 +2,7 @@
 
 import type { DecisionsOverview } from "@/core/db/queries";
 import { Big, BarRow, Figure, HairRow, Note, Quadrant, Spark, StatCard } from "../cards";
-import { micros } from "../format";
+import { micros, sourceLabel } from "../format";
 
 /** The total, and the three shares of it, as one object rather than four separate tiles. */
 function Ledger({ totals }: { totals: DecisionsOverview["totals"] }) {
@@ -63,7 +63,7 @@ function Speed({ p50, p95, recent }: { p50: number | null; p95: number | null; r
         <Figure label="p95" value={micros(p95)} />
       </div>
       <Note>
-        Harness decisions, timed by the engine alone. An admission over HTTP also pays for two
+        Conformance-run decisions, timed by the engine alone. A live API admission also pays for two
         database reads, and the two are never reported as one number.
       </Note>
     </StatCard>
@@ -76,7 +76,7 @@ function Sources({ sources }: { sources: DecisionsOverview["sources"] }) {
     <StatCard title="Where from" index={3}>
       <div className="mt-3 flex flex-col">
         {sources.map((s) => (
-          <HairRow key={s.source} name={s.source} value={s.n} />
+          <HairRow key={s.source} name={sourceLabel(s.source)} value={s.n} />
         ))}
       </div>
       <Note>Counted apart on purpose; never summed.</Note>
