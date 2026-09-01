@@ -30,6 +30,9 @@ export const ERROR_CODES = {
 
   // pace and stock
   VELOCITY_EXCEEDED: { http: 429, message: "Too many orders in this window." },
+  // Distinct from VELOCITY_EXCEEDED on purpose. That one is an engine rule about ORDERS and can
+  // appear in a receipt, so its meaning is frozen; this one is the transport counting CALLS.
+  RATE_LIMITED: { http: 429, message: "Too many requests. Slow down and try again." },
   OUT_OF_STOCK: { http: 409, message: "Not enough stock." },
 
   // request
