@@ -157,7 +157,7 @@ a logger · x402, Algorand, or any chain package.
 
 ## Working rules
 
-- `docs/FAILURES.md` is written **as things break**, not reconstructed at the end. The submission
+- `FAILURES.md` (repo root, so a judge sees it without cloning) is written **as things break**, not reconstructed at the end. The submission
   form's last question is "what broke, and how you got out" — Razorpay says it is the one they read
   first.
 - MCP stdio uses **stdout** for the protocol. Every diagnostic goes to `console.error`. One stray

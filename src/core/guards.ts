@@ -5,6 +5,7 @@ import type { ZodType } from "zod";
 import { getDb } from "@/core/db";
 import { buyerAgents } from "@/core/db/schema";
 import { fail } from "@/core/http";
+import { take } from "@/core/limit";
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; response: Response };
 
@@ -48,6 +49,30 @@ export async function requireAgent(request: Request): Promise<Parsed<AgentRow>> 
 
   const agent = await agentByKey(key);
   if (!agent) return { ok: false, response: fail("AGENT_UNKNOWN") };
+
+  // Rate limited per agent, here rather than per route, because every authenticated surface goes
+  // through this function and the routes are at a 12-line ceiling.
+  //
+  // Not the same thing as the engine's maxOrdersPerHour: that is a policy rule, it counts rows that
+  // became ORDERS, and it is evaluated after signature verification and a dozen reads. It therefore
+  // does nothing about quote flooding, which is the cheap way to hurt this deployment -- every quote
+  // writes an offer AND an audit row, and the audit chain takes one global lock.
+  const limit = take(`agent:${agent.id}`, CALLS_PER_MINUTE, 60_000);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      response: fail("RATE_LIMITED", { retryAfterSeconds: limit.retryAfter }),
+    };
+  }
+
+  // Freezing an agent has to stop it here, not at the last step. AGENT_FROZEN is rule 1 of the
+  // engine, which only runs on pay -- so a frozen agent could still browse the catalogue and, worse,
+  // have the merchant sign it a fresh offer token. Revocation that only takes effect on the final
+  // call is not revocation. The engine rule stays where it is, as the second lock.
+  if (agent.status === "FROZEN") {
+    return { ok: false, response: fail("AGENT_FROZEN", { agentId: agent.id, reason: agent.frozenReason }) };
+  }
+
   return { ok: true, value: agent };
 }
 
@@ -63,6 +88,13 @@ export function cronAuthorized(request: Request): boolean {
   const want = Buffer.from(secret);
   return given.length === want.length && timingSafeEqual(given, want);
 }
+
+/**
+ * Generous on purpose: a demo drives dozens of calls in a burst and must never trip this, while a
+ * loop fast enough to serialise the audit chain trips it immediately. It is a speed bump, and
+ * core/limit.ts is honest about being per-instance.
+ */
+const CALLS_PER_MINUTE = 120;
 
 const SOURCES = ["mcp", "http", "llm", "harness"] as const;
 export type RequestSource = (typeof SOURCES)[number];

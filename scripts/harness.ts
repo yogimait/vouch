@@ -17,7 +17,9 @@ import type { Outcome } from "@/core/engine/types";
 import { recordDecision } from "@/core/decisions";
 import type { ErrorCode } from "@/core/errors";
 
-const PER_CLASS = Number(process.argv[2] ?? 15);
+// Read as the first NUMERIC argument, not argv[2]: `npm run harness -- --persist` put the flag
+// there, Number("--persist") is NaN, and the run silently produced zero decisions.
+const PER_CLASS = Number(process.argv.slice(2).find((a) => /^\d+$/.test(a)) ?? 15);
 
 interface Attempt {
   label: string;

@@ -46,6 +46,10 @@ suite("gateway failure", () => {
     await db.insert(schema.authorizations).values({
       id: authId, agentId: agent.id, merchantId: merchant.id,
       maxAmountPaise: MAX, maxPerOrderPaise: MAX,
+      // Velocity is counted per AGENT, not per authorization, so the default cap of 10 made this
+      // test fail the moment the seeded agent had a busy hour -- it refused VELOCITY_EXCEEDED before
+      // ever reaching the gateway. This test is about the gateway; the cap is not its variable.
+      maxOrdersPerHour: 1000,
       allowedCategories: [item.category],
       expireAt: new Date(Date.now() + 86_400_000),
       grantedBy: "test", grantedVia: "test", grantSignature: "test",

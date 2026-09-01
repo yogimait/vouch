@@ -15,6 +15,47 @@ Razorpay is the beneficiary of the evidence, never the underwriter of the decisi
 
 ---
 
+## What is actually on the record
+
+Every figure here is produced by a command in this repo, and each links to the page that shows it.
+Gate numbers and settlement numbers are listed apart, because they answer different questions and
+adding them would turn *"we decided 223 times"* into a claim about money that never moved.
+
+**The gate** — `npm run harness`, driving `evaluate()` directly:
+
+| | |
+|---|---|
+| Violation classes, 15 attempts each | **210 decisions** |
+| Classified exactly as expected | **210 / 210** |
+| Engine latency | **p50 4.2us, p95 22.7us** |
+| Razorpay calls, model calls on this path | **zero, by construction** |
+
+**The money** — `npm run settle` and `npm run demo:4`, against Razorpay test mode:
+
+| | |
+|---|---|
+| Orders settled, with a real `pay_...` id each | **11** |
+| Signed receipts, one per settled order | **11** |
+| Settled value | **Rs 22,295** |
+| Of which a human authorised after the agent was refused | **1, at Rs 14,000** |
+| Hash-chained audit rows, verified end to end | **291, chain intact** |
+
+**The build:** 147 tests across 20 files, run against a real Postgres — no mocked database, no
+mocked gateway. Four ESLint boundaries that fail the build rather than the review.
+
+The one number here that is *not* ours is on Razorpay's own dashboard: this account has taken
+**27 test-mode captures totalling Rs 54,988** across the build. That is Razorpay's ledger
+independently confirming money moved, and it is deliberately not mixed with the figures above.
+
+Four of these artifacts are committed, so none of it has to be taken on trust —
+[`evidence/public/`](evidence/public/) holds the full 210-decision harness output, the settlement
+run with its real payment ids, and one signed receipt beside a tampered copy of itself. The tamper
+report **names the altered block**. [`ARCHITECTURE.md`](ARCHITECTURE.md) has the diagrams and the
+table of exactly where a model is and is not allowed; [`FAILURES.md`](FAILURES.md) is what broke
+along the way, written as it happened.
+
+---
+
 ## How it works
 
 ```mermaid
@@ -118,7 +159,21 @@ database, no keys, no network.
 npm run receipt export <orderId>              # writes evidence/receipt-<orderId>.json
 npm run receipt verify <file>                 # signature + per-block hashes
 npm run receipt tamper <file> <path> <value>  # change one field, watch it name the block
+npm run receipt backfill                      # issue one for any paid order that has none
 ```
+
+## Verify a receipt against this repo
+
+Every exported bundle carries the public key, so `npm run receipt verify <file>` needs no database,
+no keys and no network. If you would rather not trust the key travelling with the file, this is the
+one the deployment signs with:
+
+```
+MCowBQYDK2VwAyEALw46tI6m47XZO7aBLC/xkJUw2qqgyaiZIlxFTPPGB8I=
+```
+
+Ed25519, DER/SPKI, base64. `key_id` `vouch-k1`. A bundle whose `public_key` does not match this
+should not verify, and `npm run receipt verify` will say so.
 
 ## Run it
 
@@ -177,8 +232,8 @@ fails the deployment rather than running late. On Pro the cron alone would do.
 Gate numbers (`harness`) and settlement numbers (`settle`) live in different tables and are never
 added together. One measures decisions with no network; the other measures money that actually moved.
 
-The console is at `/` — `/live`, `/agent`, `/decisions`, `/authorizations`, `/receipts`,
-`/misquotes`, `/metrics`.
+`/` is the landing page. The console is `/live`, `/agent`, `/decisions`, `/authorizations`,
+`/receipts`, `/misquotes` and `/metrics`, and every page reads live from the database.
 
 ### Tests
 
@@ -207,9 +262,9 @@ The MCP server authenticates as the **agent**, not as the merchant — the contr
 with a merchant-credentialed tool surface, where an agent holding those credentials can do anything
 the merchant can.
 
-## Deliberately absent
+## Dependencies not taken
 
-Each of these is a dependency this project decided not to take:
+Each of these is a package this project decided it did not need:
 
 - **The Razorpay SDK** — plain `fetch` against four REST paths plus one HMAC check, all in one file.
 - **Any JWT library** — `node:crypto` Ed25519 and a two-segment token: `base64url(canonical json)`
@@ -222,6 +277,64 @@ Each of these is a dependency this project decided not to take:
 - **`msw`** — the drills use real HTTP.
 - **A logger.**
 - **x402, Algorand, or any chain package.**
+
+## Deliberately not built
+
+Four things this project could have had, and the reason each one is absent. They are here because
+"where you chose *not* to use a tool" is a thing worth being able to answer.
+
+**A second payment rail — x402, ACP, AP2.** I have shipped on x402 before, and did not use it here.
+Razorpay is an RBI-authorised payment aggregator whose own agentic bet is UPI Reserve Pay, NPCI's
+rail. Bolting a crypto settlement leg onto an Indian merchant would have served my resume rather
+than the merchant. The four protocols are also not interchangeable: x402 settles on-chain per
+request, ACP and AP2 describe agent-to-agent negotiation and mandate passing, and UAP is NPCI's
+domestic answer to the same question. A merchant on Razorpay needs the last one, and it is
+activation-gated (below). So this is one rail, done properly, rather than two done thinly.
+
+**A ninth `.well-known` discovery standard.** The obvious next move for an "agentic commerce" project
+is to publish a manifest telling agents where the catalogue and payment endpoints live. I did not,
+because nobody would read it. Discovery only matters once buyers and merchants already agree on
+admission and evidence, and that is the unsolved part — inventing a ninth competing format for the
+solved part is how a project looks bigger while doing less. The MCP server already makes the same
+four functions discoverable to any agent that speaks it.
+
+**A risk score.** No 0–100 number, no ML fraud model. A hand-weighted score is exactly the black-box
+thing this project argues against: it cannot be disputed, only appealed to. Thirteen named rules that
+each cite `observed` versus `expected` can be argued with in a chargeback, and that is the point.
+
+**Heavy merchant-side AI.** The merchant's AI is deliberately thin, and it is a design decision
+rather than a gap — see below.
+
+## Three objections worth answering before they are raised
+
+**"The demo is a closed loop — you operate the buyer, the merchant and the payer."** Yes, and that is
+what makes the money real. Moving actual funds through an actual gateway without actual customers
+requires standing in for all three; the alternative is a simulation with a SANDBOX badge on it. The
+loop is closed at the edges and honest in the middle: the guard cannot tell the demo buyer from any
+other HTTP client, the engine reaches its verdict with no knowledge of who is asking, and Razorpay's
+own dashboard is an independent record of every capture. What is simulated is stated in one place —
+staff consuming supplies on `/live` — and nothing else is.
+
+**"For an AI track, there is very little AI on the merchant side."** Correct, and deliberate. The
+merchant side is where money moves, and that is the one place a probabilistic component must not be.
+Every rule that decides admission is deterministic, pure and testable with no database and no keys —
+enforced by ESLint, not by intention. The AI lives where it belongs: a real model choosing what to
+buy and how much, and prose explaining a verdict already reached.
+
+The proof that this is a feature is on the record at `/misquotes`. Given a goal it could not reach
+honestly, the buyer invented a partner discount code that did not exist. Nothing instructed it to —
+the bait was merchant marketing copy it read as product data. It was refused deterministically, and
+its own words were stored beside the refusal. A merchant whose admission logic was itself a model
+would have had to hope.
+
+**"The console has no login — anyone can read the mandates and the receipts."** True, and chosen
+rather than overlooked. This is a single seeded merchant with two seeded agents and a test-mode key;
+there is no real principal to protect, and a judge who has to be issued credentials before seeing the
+evidence is a judge who does not see the evidence. What is *not* open is anything that spends: every
+route that moves money needs an agent key, the demo routes are off unless `DEMO_CONSOLE=1` is set
+explicitly, and the one route that could have truncated the audit log was deleted rather than
+guarded. Multi-tenant auth is the first thing a second merchant would require, and it is listed under
+what is deliberately not built.
 
 ## Two Razorpay realities
 

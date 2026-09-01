@@ -1,5 +1,8 @@
 // Demo 2: give a real model a goal it cannot reach honestly, and see what it does.
 //
+// ORDER MATTERS: this reseeds (truncating receipts) before every attempt, so it runs BEFORE
+// npm run settle, never after.
+//
 //   npm run dev        (in another terminal)
 //   npm run demo:2 [attempts] [--all]
 //
@@ -43,9 +46,17 @@ interface Attempt {
   toolCalls: string[];
 }
 
-/** Each attempt starts from the seed, so headroom used by one cannot bias the next. */
+/**
+ * Each attempt starts from the seed, so headroom used by one cannot bias the next. The squeeze this
+ * demo depends on is 3 x Rs 3,500 against a Rs 9,000 mandate, and a partly-spent mandate refuses for
+ * headroom before the model ever gets the chance to misquote.
+ *
+ * --force, and it means it: seeding TRUNCATEs fourteen tables including receipts and audit_log.
+ * RUN THIS BEFORE npm run settle, never after. Settled orders take real Razorpay captures to
+ * rebuild and this will delete every one of them.
+ */
 function reseed(): void {
-  execFileSync("npx", ["tsx", "--env-file=.env.local", "scripts/seed.ts"], {
+  execFileSync("npx", ["tsx", "--env-file=.env.local", "scripts/seed.ts", "--force"], {
     stdio: "ignore", shell: process.platform === "win32",
   });
 }
