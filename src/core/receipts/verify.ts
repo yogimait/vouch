@@ -7,7 +7,7 @@ import { getDb } from "@/core/db";
 import { receipts } from "@/core/db/schema";
 import { publicKeyFromBase64, signingKeys } from "@/core/crypto/keys";
 import { verifyChain } from "@/core/audit/chain";
-import { BLOCK_NAMES, hashBlock, RECEIPT_TYP, type BlockName, type ReceiptBody } from "@/core/receipts/build";
+import { BLOCK_NAMES, hashBlock, issueReceipt, RECEIPT_TYP, type BlockName, type ReceiptBody } from "@/core/receipts/build";
 
 export interface Bundle {
   receipt: string;
@@ -68,9 +68,40 @@ export type LoadResult =
 
 type Row = typeof receipts.$inferSelect;
 
+/**
+ * The row, and the one place a missing one is repaired.
+ *
+ * settleOrder swallows a receipt failure on purpose -- Razorpay retries non-2xx and the money is
+ * already committed by then -- and its comment has always claimed the receipt could be re-issued on
+ * read. Nothing did. One transient failure at settlement meant a PAID order answered 404 forever,
+ * which is the exact counterexample to "every paid order emits a receipt", and it also deadlocked
+ * the /live shelf waiting on that delivery.
+ *
+ * Repaired here rather than in each caller because both doors -- the API through exportBundle and
+ * the console page through verifyStored -- come through this function. issueReceipt returns the
+ * existing row before touching anything and has receipts_order_unique behind it, so calling it on a
+ * miss is safe; for an order that is not PAID it declines and the miss simply stands.
+ */
 async function loadRow(orderId: string): Promise<Row | undefined> {
-  const [row] = await getDb().select().from(receipts).where(eq(receipts.orderId, orderId)).limit(1);
-  return row;
+  const read = async () => {
+    const [row] = await getDb().select().from(receipts).where(eq(receipts.orderId, orderId)).limit(1);
+    return row;
+  };
+
+  const row = await read();
+  if (row) return row;
+
+  // Caught, then re-read. Two callers can miss the select at the same time -- demo 4 hit exactly
+  // that, reading a moment before the webhook's own issue committed -- and the loser of that race
+  // trips receipts_order_unique. The row it wanted exists by then, so the insert failing is not the
+  // same thing as there being no receipt, and it must not surface as a 500.
+  try {
+    const issued = await issueReceipt(orderId);
+    if (!issued.ok) return undefined;
+  } catch (error) {
+    console.error(`[receipt] re-issue for ${orderId}`, error);
+  }
+  return await read();
 }
 
 /** The public key travels with the bundle so verification needs nothing from us but the file. */

@@ -32,6 +32,9 @@ suite("dispute-grade receipt", () => {
   const offerId = `off_RC${stamp}`;
   const orderId = `ord_RC${stamp}`;
 
+  // 30s, matching the other DB-backed suites: this fixture makes ~20 round trips to a hosted
+  // Postgres and then settles through the real webhook path. Vitest's 10s default was a coin flip on
+  // a slow link, and a timing-out fixture reads like a receipt bug that is not there.
   beforeAll(async () => {
     db = (await import("@/core/db")).getDb();
     schema = await import("@/core/db/schema");
@@ -164,6 +167,41 @@ suite("dispute-grade receipt", () => {
     expect(result.valid).toBe(false);
   });
 
+  // The central claim is "every paid order emits a receipt". settleOrder deliberately swallows a
+  // receipt failure so a receipt bug cannot become a Razorpay retry storm, which left exactly one
+  // way for that claim to be false: a transient failure at settlement, then a 404 forever.
+  it("re-issues a receipt that settlement failed to write", async () => {
+    const before = await exportBundle(orderId);
+    if (!before.ok) throw new Error(before.code);
+
+    // Exactly the state a swallowed issueReceipt leaves behind: PAID, money committed, no receipt.
+    await db.execute(sql`delete from receipts where order_id = ${orderId}`);
+    const [gone] = await db.select().from(schema.receipts)
+      .where(eq(schema.receipts.orderId, orderId));
+    expect(gone).toBeUndefined();
+
+    const healed = await exportBundle(orderId);
+    expect(healed.ok).toBe(true);
+    if (!healed.ok) return;
+    expect(healed.verification.valid).toBe(true);
+    expect(healed.verification.signatureValid).toBe(true);
+
+    // Re-issued, not resurrected: same order, same six blocks, and it verifies on its own terms.
+    const body = JSON.parse(healed.bundle.receipt);
+    expect(Object.keys(body.block_hashes).sort())
+      .toEqual(["audit", "authorization", "decision", "offer", "payment", "policy"]);
+  });
+
+  it("does not issue a second receipt when read again", async () => {
+    await exportBundle(orderId);
+    await exportBundle(orderId);
+
+    const rows = (await db.execute(sql`
+      select count(*)::text as n from receipts where order_id = ${orderId}
+    `)) as unknown as { n: string }[];
+    expect(rows[0].n).toBe("1");
+  });
+
   it("rejects a bundle carrying someone else's public key", async () => {
     const loaded = await exportBundle(orderId);
     if (!loaded.ok) throw new Error(loaded.code);
@@ -176,4 +214,4 @@ suite("dispute-grade receipt", () => {
     expect(result.tamperedBlocks).toEqual([]);
     expect(result.valid).toBe(false);
   });
-});
+}, 30_000);

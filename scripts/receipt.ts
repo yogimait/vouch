@@ -3,10 +3,14 @@
 //   npm run receipt export <orderId>     writes evidence/receipt-<orderId>.json
 //   npm run receipt verify <file>        verifies it with nothing but the file
 //   npm run receipt tamper <file> <path> <value>    edits one field and re-verifies
+//   npm run receipt backfill             issues one for every PAID order that somehow has none
 //
 // The bundle carries the public key, so verify needs no database, no keys and no network.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { sql } from "drizzle-orm";
 import { canonicalJson } from "@/core/canonical";
+import { getDb } from "@/core/db";
+import { issueReceipt } from "@/core/receipts/build";
 import { verifyBundle, verifyStored, type Bundle, type Verification } from "@/core/receipts/verify";
 
 const [mode, arg, path, value] = process.argv.slice(2);
@@ -46,6 +50,32 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Reading a receipt already repairs a missing one (core/receipts/verify.ts loadRow). This is the
+  // sweep for orders nobody has opened yet -- it exists so "every paid order emits a receipt" can be
+  // checked as a statement about the whole table rather than one order at a time.
+  if (mode === "backfill") {
+    const rows = (await getDb().execute(sql`
+      select o.id from orders o
+       where o.state = 'PAID'
+         and not exists (select 1 from receipts r where r.order_id = o.id)
+       order by o.created_at
+    `)) as unknown as { id: string }[];
+
+    console.log(`
+  ${rows.length} paid order${rows.length === 1 ? "" : "s"} with no receipt
+`);
+    let issued = 0;
+    for (const row of rows) {
+      const result = await issueReceipt(row.id);
+      console.log(`  ${row.id}  ${result.ok ? `issued ${result.receiptId}` : `FAILED ${result.code}`}`);
+      if (result.ok) issued += 1;
+    }
+    if (rows.length > 0) console.log(`
+  issued ${issued} of ${rows.length}
+`);
+    return;
+  }
+
   if (mode === "verify") {
     report(verifyBundle(read(arg)));
     return;
@@ -66,7 +96,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.error("usage: receipt export <orderId> | verify <file> | tamper <file> <dotted.path> <value>");
+  console.error("usage: receipt export <orderId> | verify <file> | tamper <file> <dotted.path> <value> | backfill");
   process.exit(1);
 }
 
