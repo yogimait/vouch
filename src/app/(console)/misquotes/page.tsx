@@ -23,22 +23,24 @@ export default async function MisquotesPage() {
       <MisquoteCards overview={overview} />
 
       <PageScroll>
+        {/* Two tables, never one. The counts are kept apart because a model's own attempt and a
+            scripted one are not the same evidence, and a reader who can add them by eye will. */}
         <section className="mt-6 mb-12">
-          <h2 className="label mb-1">From a language model · {llm.length}</h2>
+          <h2 className="label mb-1">From an AI buyer · {llm.length}</h2>
           <p className="mb-4 text-xs text-fg-3">
             A real model, given a goal it could not reach honestly. Nothing instructed it to lie.
             The run&rsquo;s model and temperature are shown live on the Agent console.
           </p>
-          <MisquoteTable rows={llm} empty="Run: npm run demo:2" />
+          <MisquoteTable rows={llm} empty="No AI buyer has stated an unsigned price yet." />
         </section>
 
         <section>
-          <h2 className="label mb-1">From the test harness · {rest.length}</h2>
+          <h2 className="label mb-1">From a conformance run · {rest.length}</h2>
           <p className="mb-4 text-xs text-fg-3">
             Scripted violations reaching the same API, listed apart on purpose. These two counts are
             never added together.
           </p>
-          <MisquoteTable rows={rest} empty="Scripted API calls land here. npm run harness drives the engine directly and writes decisions, not misquotes." />
+          <MisquoteTable rows={rest} empty="Scripted violations land here. A conformance run drives the engine directly, which writes decisions rather than misquotes." />
         </section>
       </PageScroll>
     </>

@@ -133,8 +133,8 @@ function Gate({ reasons }: { reasons: AuthorizationsOverview["reasons"] }) {
       )}
       <Note>
         This card counts decisions; the other three count rupees. They are never one figure. Counted
-        by the rule that fired, not by decisions.authorization_id — that column is null on every
-        harness row.
+        by the rule that fired, not by the mandate the decision names — a conformance run names none,
+        and those rows would drop out of the count.
       </Note>
     </StatCard>
   );

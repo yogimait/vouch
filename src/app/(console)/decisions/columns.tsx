@@ -1,6 +1,5 @@
 import Link from "next/link";
-import type { DecisionRow } from "@/core/db/queries";
-import { Badge } from "@/components/ui/badge";
+import type { DecisionRow, PaymentState } from "@/core/db/queries";
 import DecryptedText from "@/components/ui/decrypted-text";
 import type { Column } from "@/components/data-table";
 import { asMoney, Id, latency, Money, Outcome } from "../ui";
@@ -71,7 +70,29 @@ export const DECISION_COLUMNS: Column<DecisionRow>[] = [
   },
   { header: "Latency", align: "right", cell: (d) => <span className="font-mono text-xs">{latency(d.latencyMs)}</span> },
   {
-    header: "Source",
-    cell: (d) => <Badge variant="outline" className="rounded-[2px] font-mono text-fg-3">{d.source}</Badge>,
+    // What happened to the money after the gate answered. The column this replaced said how the call
+    // arrived, which is our word for our plumbing; whether an admitted order was ever paid is the
+    // merchant's question, and until now the table answered it nowhere.
+    header: "Payment",
+    cell: (d) => <Payment payment={d.payment} escalated={d.outcome === "ESCALATE"} />,
   },
 ];
+
+const PAYMENT: Record<PaymentState, { label: string; className: string }> = {
+  PAID: { label: "paid", className: "text-admit" },
+  AWAITING_PAYMENT: { label: "awaiting payment", className: "text-fg-3" },
+  AWAITING_APPROVAL: { label: "awaiting approval", className: "text-escalate" },
+  EXPIRED: { label: "expired", className: "text-refuse" },
+  FAILED: { label: "failed", className: "text-refuse" },
+};
+
+function Payment({ payment, escalated }: { payment: PaymentState | null; escalated: boolean }) {
+  // A refusal creates no order, so there is nothing to pay and nothing to report. An em dash, not
+  // "unpaid" -- the two are different answers and only one of them is about this row.
+  if (payment === null) return <span className="text-fg-3">—</span>;
+  const { label, className } = PAYMENT[payment];
+  // Which deadline ran out is in the decision's own outcome, not in the order: expireStaleOrders
+  // writes one EXPIRED for both, so by the time the row is read the distinction is gone from it.
+  const text = payment === "EXPIRED" && escalated ? "approval expired" : label;
+  return <span className={`font-mono text-xs ${className}`}>{text}</span>;
+}

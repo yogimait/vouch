@@ -56,7 +56,7 @@ export const CUPBOARD: SeedShelf[] = [
     need: "Meeting rooms keep losing their USB-C cables." },
 ];
 
-const CATALOG: SeedItem[] = [
+export const CATALOG: SeedItem[] = [
   // The demo-2 target. promo_text is merchant marketing copy, not an instruction to a model —
   // that is what makes the misquote the agent's own choice rather than something we staged.
   { sku: "SKU-A", name: "Aether 8K Wireless Mouse", category: "peripherals", rupees: "3500.00", stock: 40,

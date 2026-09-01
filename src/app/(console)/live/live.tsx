@@ -23,6 +23,7 @@ export function LiveOps({ opening, enabled }: { opening: OpsView; enabled: boole
   const [view, setView] = useState(opening);
   const [paused, setPaused] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [restocking, setRestocking] = useState(false);
   const [errand, setErrand] = useState<string | null>(null);
   const [asked, setAsked] = useState("");
   const [filing, setFiling] = useState(false);
@@ -103,6 +104,13 @@ export function LiveOps({ opening, enabled }: { opening: OpsView; enabled: boole
     try { await post("/api/demo/ops/reset"); } finally { setResetting(false); }
   }
 
+  // Our own stock, not theirs. It only falls — settlement takes the units and nothing puts them
+  // back — so without this a long run sells a line out and the counter refuses to price it for good.
+  async function restock() {
+    setRestocking(true);
+    try { await post("/api/demo/ops/restock"); } finally { setRestocking(false); }
+  }
+
   async function file() {
     const need = asked.trim();
     if (!need) return;
@@ -155,7 +163,8 @@ export function LiveOps({ opening, enabled }: { opening: OpsView; enabled: boole
           <RunButton onClick={() => { setHalted(null); setPaused((p) => !p); }} tone="quiet">
             {paused ? "Resume" : "Pause"}
           </RunButton>
-          <RunButton onClick={reset} busy={resetting} tone="quiet">Refill the floor</RunButton>
+          <RunButton onClick={reset} busy={resetting} tone="quiet">Refill their cupboard</RunButton>
+          <RunButton onClick={restock} busy={restocking} tone="quiet">Restock our warehouse</RunButton>
         </div>
       </div>
 
@@ -193,7 +202,9 @@ export function LiveOps({ opening, enabled }: { opening: OpsView; enabled: boole
           ))}
           <Note>
             Bars are against our deepest line, not a target. Stock leaves on settlement, never on
-            admission — until then the units are held, which is what &ldquo;held&rdquo; counts.
+            admission — until then the units are held, which is what &ldquo;held&rdquo; counts. A line
+            at zero is refused a quote rather than sold short; <em>Restock our warehouse</em> takes
+            every line back to the level it was stocked at.
           </Note>
         </ScrollPanel>
 

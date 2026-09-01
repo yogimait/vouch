@@ -2,7 +2,7 @@ import type { ClassCount, MetricsOverview, SettlementSnapshot, SourceClock } fro
 import { CLASSES } from "@/demo/classes";
 import { formatInr } from "@/core/money";
 import { Big, BarRow, Figure, HairRow, Note, Quadrant, StatCard } from "../cards";
-import { micros, pct, type Tone } from "../format";
+import { micros, pct, sourceLabel, type Tone } from "../format";
 
 // A server component on purpose: money is bigint here, and a bigint cannot cross into a client prop.
 
@@ -30,9 +30,8 @@ function Classes({ classes }: { classes: ClassCount[] }) {
         <>
           <Big value="not run yet" caption={`${CLASSES.length} classes declared, none exercised`} />
           <Note>
-            These rows exist only after <span className="font-mono">npm run harness</span>. Clicking
-            through the demo writes decisions, but not labelled ones, so this is not a zero — it is
-            an unmeasured card.
+            These rows exist only after a conformance run. Ordinary traffic writes decisions, but not
+            labelled ones, so this is not a zero — it is an unmeasured card.
           </Note>
         </>
       ) : (
@@ -63,15 +62,14 @@ function Clocks({ sources }: { sources: SourceClock[] }) {
       ) : (
         <div className="mt-3 flex flex-col">
           {sources.map((s) => (
-            <HairRow key={s.source} name={s.source} value={`${s.n} · ${micros(s.p50Micros)} · ${micros(s.p95Micros)}`} />
+            <HairRow key={s.source} name={sourceLabel(s.source)} value={`${s.n} · ${micros(s.p50Micros)} · ${micros(s.p95Micros)}`} />
           ))}
         </div>
       )}
       <Note>
-        Count, p50, p95 — listed apart and never summed. The clocks are not comparable:{" "}
-        <span className="font-mono">harness</span> times the engine alone, while{" "}
-        <span className="font-mono">http</span> times a full admission including the database reads
-        that assemble its context.
+        Count, p50, p95 — listed apart and never summed. The clocks are not comparable: the
+        conformance run times the engine alone, while a live API call times a full admission
+        including the database reads that assemble its context.
       </Note>
     </StatCard>
   );
