@@ -13,13 +13,20 @@ Razorpay AI Buildathon, Track 01. Solo build.
 The positioning that decides every design call: *the merchant owns and evidences the risk decision;
 Razorpay is the beneficiary of the evidence, never the underwriter of the decision.*
 
+Track 01 asks for an agent that grows a merchant's revenue, **or one that makes a merchant
+transactable by an AI buyer end to end**. This is the second. The track's bar — *every money action
+explainable, bounded and gated; show the audit trail and one failure handled gracefully* — is taken
+literally, and each half of it is a link in the table below.
+
+![Vouch architecture: the ask, the decision, the money](public/architecture.png)
+
 ---
 
 ## What is actually on the record
 
 Every figure here is produced by a command in this repo, and each links to the page that shows it.
 Gate numbers and settlement numbers are listed apart, because they answer different questions and
-adding them would turn *"we decided 223 times"* into a claim about money that never moved.
+adding them would turn *"we decided 234 times"* into a claim about money that never moved.
 
 **The gate** — `npm run harness`, driving `evaluate()` directly:
 
@@ -34,13 +41,13 @@ adding them would turn *"we decided 223 times"* into a claim about money that ne
 
 | | |
 |---|---|
-| Orders settled, with a real `pay_...` id each | **11** |
-| Signed receipts, one per settled order | **11** |
-| Settled value | **Rs 22,295** |
-| Of which a human authorised after the agent was refused | **1, at Rs 14,000** |
-| Hash-chained audit rows, verified end to end | **291, chain intact** |
+| Orders settled, with a real `pay_...` id each | **13** |
+| Signed receipts, one per settled order | **13** |
+| Settled value | **Rs 27,689** |
+| Of which a human authorised after the agent was refused | **3, totalling Rs 19,394** |
+| Hash-chained audit rows, verified end to end | **369, chain intact** |
 
-**The build:** 147 tests across 20 files, run against a real Postgres — no mocked database, no
+**The build:** 151 tests across 21 files, run against a real Postgres — no mocked database, no
 mocked gateway. Four ESLint boundaries that fail the build rather than the review.
 
 The one number here that is *not* ours is on Razorpay's own dashboard: this account has taken
@@ -354,7 +361,16 @@ callback, which runs on a page the payer controls. `--fail` pays with an interna
 a domestic-only account, which produces a genuinely failed payment record and a released hold.
 
 **2. UPI Reserve Pay is activation-gated, and not available in test mode at all.** Razorpay support
-confirmed this in writing on 2026-08-30 (ticket #20607038). Live activation is support-gated.
+confirmed this in writing on 2026-08-30 (ticket #20607038): Reserve Pay cannot be used on a test key,
+and activating it requires a verified business account transacting real money.
+
+That is the one thing standing between an ADMIT and a fully headless settlement. **In production it
+is a swap, not a redesign** — activate Reserve Pay on a live account, and the authorization device
+(`scripts/device.ts`) is replaced by a real block-and-debit against the mandate. Nothing above the
+device changes: the agent still never holds a credential, the engine still decides before anything is
+signed, the ledger still derives its balances, and the receipt still gets built from the same six
+blocks. The device exists because the credential holder has to be *something*, and on a test key that
+something cannot be UPI.
 
 So the Reserve Pay integration is **not live here**, and nothing in this repo claims otherwise. What
 the `authorizations` table does carry is Razorpay's own Reserve Pay vocabulary — `token_type`

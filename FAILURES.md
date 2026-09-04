@@ -701,3 +701,43 @@ the part that must be right whether or not the network answered.
 links are capped at 30 for the lifetime of a test account and that quota is already spent, so the
 code takes its documented fallback to the merchant's own checkout page. Both paths are asserted, so
 the test stays honest either way.
+
+---
+
+## 2026-09-04 · The one thing between ADMIT and a headless settlement is an account type
+
+**Expected** an ADMIT to settle itself. The whole point of a Reserve-Pay-shaped mandate is that the
+buyer blocks an amount once and the merchant debits against it per order — no browser, no person, no
+checkout page. The `authorizations` table was built to Razorpay's own Reserve Pay vocabulary from day
+one (`single_block_multiple_debit`, `as_presented`, `max_amount`, `expire_at`) precisely so that this
+would be a wiring exercise rather than a redesign.
+
+**Happened** It cannot be done on a test key at all. Support confirmed it in writing on 2026-08-30,
+ticket **#20607038**: UPI Reserve Pay is not available for test-mode usage, and activating it needs a
+verified business account — a specified business, real money, live keys. Not a flag, not a support
+toggle on a student account. The same reply also closed open question 1 at the top of this file: on a
+plain `rzp_test_` key, *nothing* completes a payment headlessly.
+
+So the gap is not in the code. It is that the only credential holder available to this build is a
+browser, and every honest option collapses to the same shape: something outside the agent must hold
+the credential and authorise the spend.
+
+**Changed** The authorization device (`scripts/device.ts`) — a separate process, the only one in the
+system holding a payment credential, driving the real Razorpay checkout and confirming the capture
+from Razorpay's API rather than from the browser it just drove.
+
+The important part is that this is not a stub standing in for Reserve Pay. It is the *same topology*:
+the agent proposes, a credential holder authorises, the merchant debits against a block it was
+granted in advance. `pay()` never moves money in either world. In production, activating Reserve Pay
+replaces one process at the bottom of the stack and changes nothing above it — the engine still
+decides before anything is signed, the ledger still derives balances from append-only rows, and the
+receipt is still built from the same six blocks.
+
+**Cost** Two days of the build assumed the mandate would be live, and the `amount_debited` field was
+designed around a Reserve Pay response that never arrives. That turned out to be the right shape
+anyway for a reason unrelated to Razorpay: a stored debited total drifts under concurrency, so it is
+derived from the ledger instead. The column was never added.
+
+The visible cost is honesty in the demo — the settlement leg is a driven checkout, and it is labelled
+as one everywhere: in the README, in `ARCHITECTURE.md`, and in the receipt itself, whose `payment`
+block records `mode: "polled"` rather than claiming a webhook signature it did not verify.
