@@ -12,6 +12,10 @@ beneficiary of the evidence, never the underwriter of the decision.*
 
 ## 1. The whole path, once
 
+![Vouch architecture: the ask, the decision, the money](public/architecture.png)
+
+The same path as source, so it can be diffed rather than redrawn:
+
 ```mermaid
 flowchart TD
   agent["Buyer agent — holds an API key, never a payment credential"]
