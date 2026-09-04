@@ -1,18 +1,9 @@
-// Gives back what an abandoned checkout is still holding.
+// Gives back what an abandoned checkout is still holding. reserve() always wrote a deadline and
+// nothing read it, so an unpaid order held a slice of the mandate forever. This is the reader.
 //
-// reserve() has always written a deadline on the ledger row and nothing ever read it, so an order
-// nobody paid held a slice of the mandate forever. This is the reader.
-//
-// Three callers, deliberately, because no one of them is enough:
-//
-//   npm run expire        a person, on demand
-//   GET /api/cron/expire  Vercel's scheduler, DAILY -- Hobby caps crons at once per day, and a
-//                         shorter expression does not run late, it fails the deployment outright
-//   opsTick()             the live floor, every tick, so a demo does not wait a day for a
-//                         fifteen-minute hold to come back
-//
-// On a Pro plan the cron alone would do, at */5. Until then it is the backstop and the other two
-// are the mechanism.
+// Three callers, because no one of them is enough: `npm run expire` on demand, GET /api/cron/expire
+// DAILY (Hobby caps crons at once a day, and a shorter expression fails the deployment outright),
+// and opsTick() every tick, so a demo does not wait a day for a fifteen-minute hold.
 import { sql } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import { writeAudit } from "@/core/audit/log";
@@ -29,10 +20,7 @@ export interface Sweep {
 
 interface Stale { id: string; razorpay_order_id: string | null }
 
-/**
- * One pass. Bounded, because an unbounded sweep over a bad deadline is a self-inflicted outage —
- * and because each order with a gateway order behind it costs a round trip to Razorpay.
- */
+/** One pass, bounded: each order with a gateway order behind it costs a round trip to Razorpay. */
 export async function expireStaleOrders(now: Date = new Date(), limit = 100): Promise<Sweep> {
   const rows = (await getDb().execute(sql`
     select id, razorpay_order_id

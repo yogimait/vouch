@@ -7,15 +7,11 @@
 //   npm run device     (settles everything the run admitted, in one pass)
 //
 // We are the warehouse. The agent belongs to the buyer, holds an API key and no payment credential,
-// and cannot import the guard — that is an ESLint rule.
-//
-// The agent is never told which SKU to buy. It is told what the business needs and finds the item
-// itself: an agent handed a part number is a form, not an agent. Neither the errand text nor the
-// tool names are printed — what belongs on screen is the need, the agent's own account of what it
-// did, and the guard's answer. The plumbing is in the trace for anyone who wants it.
+// and cannot import the guard — that is an ESLint rule. It is told what the business needs, never
+// which SKU, and only the need, its own account and the guard's answer are printed.
 //
 // The mandate drains as the run proceeds, so situations 4 and 5 differ only in what is left, not in
-// what was asked. That is the whole argument for three outcomes instead of allow/deny.
+// what was asked. That is the argument for three outcomes instead of allow/deny.
 import { sql } from "drizzle-orm";
 import { getDb } from "@/core/db";
 import { balances } from "@/core/ledger";
