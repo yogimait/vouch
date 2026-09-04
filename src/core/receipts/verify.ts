@@ -69,18 +69,12 @@ export type LoadResult =
 type Row = typeof receipts.$inferSelect;
 
 /**
- * The row, and the one place a missing one is repaired.
+ * The row, and the one place a missing one is repaired. settleOrder swallows a receipt failure on
+ * purpose, so one transient failure meant a PAID order answered 404 forever -- the exact
+ * counterexample to "every paid order emits a receipt", and a deadlocked /live shelf with it.
  *
- * settleOrder swallows a receipt failure on purpose -- Razorpay retries non-2xx and the money is
- * already committed by then -- and its comment has always claimed the receipt could be re-issued on
- * read. Nothing did. One transient failure at settlement meant a PAID order answered 404 forever,
- * which is the exact counterexample to "every paid order emits a receipt", and it also deadlocked
- * the /live shelf waiting on that delivery.
- *
- * Repaired here rather than in each caller because both doors -- the API through exportBundle and
- * the console page through verifyStored -- come through this function. issueReceipt returns the
- * existing row before touching anything and has receipts_order_unique behind it, so calling it on a
- * miss is safe; for an order that is not PAID it declines and the miss simply stands.
+ * Repaired here because both doors come through this function. issueReceipt is idempotent behind
+ * receipts_order_unique, and declines for an order that is not PAID.
  */
 async function loadRow(orderId: string): Promise<Row | undefined> {
   const read = async () => {

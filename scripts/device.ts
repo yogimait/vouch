@@ -4,12 +4,11 @@
 //   npm run device <orderId>  settles one
 //   npm run device -- --fail   pays with a card this business rejects, so the hold is released
 //
-// This is the architecture, not a workaround. The agent is handed a URL and never a credential;
-// something the human controls authorises the spend. Reserve Pay works the same way, and it is why
-// pay() itself never moves money.
+// The architecture, not a workaround: the agent is handed a URL and never a credential, which is
+// the Reserve Pay shape and why pay() never moves money.
 //
-// The walk is the one the day-0 gate proved: contact gate -> domestic card -> decline card-save ->
-// Razorpay's own OTP screen. UPI is not an option (GET /v1/preferences reports upi:false).
+// The walk the day-0 gate proved: contact gate -> domestic card -> decline card-save -> OTP.
+// UPI is not an option (GET /v1/preferences reports upi:false).
 import { chromium, type Frame, type Page } from "playwright";
 import { mkdirSync } from "node:fs";
 import { eq, inArray } from "drizzle-orm";
@@ -23,10 +22,8 @@ const FORCE_FAILURE = process.argv.includes("--fail");
 // turns recording on for the whole chain without threading an argument through.
 const RECORD = process.env.VOUCH_RECORD === "1" || process.argv.includes("--video");
 
-// --fail pays with an INTERNATIONAL card. This business is domestic-only, so Razorpay rejects it
-// with "this business accepts domestic (Indian) card payments only" — a real failed payment record.
-// A wrong OTP does not work: test mode accepts 999999 and captures anyway, which was measured, not
-// assumed. UPI's failure@razorpay is unreachable here because upi is disabled on the account.
+// --fail uses an INTERNATIONAL card against a domestic-only business: a real failed payment record.
+// A wrong OTP does not work — test mode accepts 999999 and captures anyway. Measured, not assumed.
 const DOMESTIC = "5267318187975449";
 const INTERNATIONAL = "4111111111111111";
 const CARD = {

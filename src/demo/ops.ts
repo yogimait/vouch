@@ -1,7 +1,5 @@
 // The floor: the buyer's cupboard empties, and crossing a reorder level raises an errand.
-//
-// Staff usage is the only simulated thing in this file. What happens next — the offer, the guard,
-// the money, the receipt — is the same code path an agent reaches over HTTP.
+// Staff usage is the only simulated thing here; everything after it is the real HTTP path.
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/core/db";
@@ -60,30 +58,20 @@ export interface OpsView {
 /** Newest twelve. The queue is a story, not a ledger — /decisions is where the whole record lives. */
 const SHOWN = 12;
 
-/**
- * One tick of the working day. Sequential, never Promise.all: each statement holds a pooled
- * connection and this is the highest-frequency caller in the app.
- */
+/** One tick. Sequential, never Promise.all: the pool is twelve and this is the busiest caller. */
 export async function opsTick(): Promise<OpsView> {
   const db = getDb();
 
-  // Before consuming anything: an order settled since the last tick puts goods on their shelf, and
-  // a shelf credited first is a shelf that does not re-ask for something already on its way.
+  // First, so a shelf credited by a settlement does not re-ask for goods already on their way.
   await deliverSettled();
 
-  // And anything past its deadline gives its hold back here rather than waiting for the cron. Vercel
-  // caps Hobby crons at once a day, and a fifteen-minute hold sitting for twenty-four hours is not
-  // the property this was built for. Costs one indexed query when nothing is due, which is almost
-  // always; the small limit bounds the tick when something is.
+  // Vercel caps Hobby crons at once a day, so the tick sweeps too — a fifteen-minute hold must not
+  // sit for twenty-four hours. One indexed query when nothing is due, which is almost always.
   await expireStaleOrders(new Date(), 5);
 
-  // One statement, returning the state it just produced — so deciding what crossed costs no second
-  // read. Never read-then-write: two overlapping ticks would both read the same number and one
-  // decrement would vanish.
-  //
-  // Consumption stops AT the reorder line, not at zero. The line is safety stock: a floor holds it
-  // back once it has raised an order rather than issuing the last of it. Draining past it left every
-  // shelf flat at zero, which read as a broken simulation rather than a cupboard waiting on delivery.
+  // One statement, returning what it produced: read-then-write would lose a decrement under two
+  // overlapping ticks. Consumption stops AT the reorder line — draining to zero read as a broken
+  // simulation rather than as a cupboard waiting on delivery.
   const shelves = (await db.execute(sql`
     update cupboard_items
        set on_hand = greatest(on_hand - usage_per_tick, reorder_level)
@@ -114,11 +102,8 @@ export async function opsTick(): Promise<OpsView> {
 }
 
 /**
- * The errand in the buyer's own words, with the number they are short.
- *
- * The quantity has to be in the sentence: the shelf's own prose used to end "Order one", so the
- * agent dutifully bought one unit and the cupboard then jumped back to full anyway. Buying one and
- * receiving seven is not a supply chain, it is a prop.
+ * The errand in the buyer's own words. The quantity has to be in the sentence — the prose used to
+ * end "Order one", so the agent bought one unit and the shelf refilled by seven anyway.
  */
 export function askFor(shelf: { need: string; on_hand: number; start_on_hand: number }): string {
   const short = shelf.start_on_hand - shelf.on_hand;
@@ -127,13 +112,8 @@ export function askFor(shelf: { need: string; on_hand: number; start_on_hand: nu
 }
 
 /**
- * A shelf asks once and then waits for the delivery, so the floor cannot spin.
- *
- * Blocked while an errand is in flight, blocked while an admitted one is still waiting to be paid,
- * and blocked for good once one came back as anything other than goods on their way. Without that
- * last part a refused or failed errand freed the shelf
- * the moment it closed, and since the shelf was still empty the next tick asked again — which
- * emptied the cupboard, filled the queue and ran the model until the API cut us off.
+ * A shelf asks once, then waits for the delivery. Unblocking on anything short of goods landing let
+ * a still-empty shelf re-ask every tick, which ran the model until the API cut us off.
  */
 async function shelvesAlreadyAsking(ids: string[]): Promise<Set<string>> {
   const rows = (await getDb().execute(sql`
@@ -273,20 +253,14 @@ async function deliverSettled(): Promise<void> {
   `);
 }
 
-/**
- * One errand, streamed as it happens. The model is given the need in the buyer's own words and finds
- * the item itself; everything after that is the ordinary HTTP surface, so the guard cannot tell this
- * apart from any other agent and no LLM output reaches the decision.
- */
+/** One errand, streamed. The model finds the item itself; the guard sees an ordinary HTTP client. */
 export function opsStream(requestId: string): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
   return new ReadableStream({
     async start(controller) {
-      // The client can disconnect mid-errand -- a tab closing, or the tick's own onerror.
-      // Enqueueing after that throws "Controller is already closed", which used to escape into
-      // the catch below and be filed as "the model call failed before reaching the guard". It
-      // did not fail: the run finished and nobody was listening.
+      // A disconnect mid-errand throws "Controller is already closed", which used to be filed as a
+      // model failure. It did not fail; nobody was listening.
       let open = true;
       const send = (event: Record<string, unknown>) => {
         if (!open) return;
@@ -369,11 +343,7 @@ function outOfTokens(error: unknown): boolean {
   return error instanceof Error && /rate limit|quota|tokens per day|TPD/i.test(error.message);
 }
 
-/**
- * The provider's raw error is a paragraph carrying an org id and a billing link. A counter that
- * prints it verbatim is unreadable, and the one fact that matters -- nothing reached the guard --
- * is buried at the end of it.
- */
+/** The provider's raw error is a paragraph with an org id and a billing link. Unreadable on a counter. */
 function plainly(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error);
   if (outOfTokens(error)) {
@@ -388,18 +358,11 @@ function plainly(error: unknown): string {
 }
 
 /**
- * Goods inwards, for our own warehouse rather than their cupboard.
+ * Goods inwards for our own warehouse. Stock only ever falls, so a long run sells a line out and the
+ * counter then refuses to price it for good.
  *
- * Our stock only ever falls: drawDownStock takes the units at settlement and nothing puts them back,
- * so a floor left running long enough sells a line out, and a line at zero is refused a quote for
- * good — which reads as a broken catalogue rather than as a merchant who needs to reorder.
- *
- * Every line goes back to the level it was stocked at, never to a round number. SKU-O is seeded at
- * two on purpose: it is the only way the catalog.inventory rule is reachable with every earlier rule
- * passing, and topping it up to a comfortable figure would quietly delete that case.
- *
- * `c.inventory < v.stock` so this only ever adds. An operator clicking it twice, or clicking it
- * while an admitted order is waiting to draw its units down, cannot walk a count backwards.
+ * Back to the level each line was stocked at, never a round number: SKU-O is seeded at two so the
+ * catalog.inventory rule stays reachable. `c.inventory < v.stock` so this only ever adds.
  */
 export async function receiveStock(): Promise<OpsView> {
   await getDb().execute(sql`
@@ -414,10 +377,7 @@ export async function receiveStock(): Promise<OpsView> {
   return opsOverview();
 }
 
-/**
- * Re-arms the floor between takes. Deliberately NOT seed() — that truncates fourteen tables and
- * would destroy the receipts and the audit chain the rest of the demo is evidence for.
- */
+/** Re-arms the floor between takes. Deliberately NOT seed(), which truncates fourteen tables. */
 export async function resetOps(): Promise<OpsView> {
   const db = getDb();
   await db.execute(sql`delete from purchase_requests`);

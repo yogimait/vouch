@@ -1,15 +1,13 @@
 // A speed bump on the money routes, not a wall.
 //
-// maxOrdersPerHour is a policy rule inside the engine: it counts rows that became orders, and it is
-// evaluated at rule 12, after signature verification and a dozen database reads. It therefore does
-// nothing about quote flooding or refused-pay flooding, which are the two cheap ways to hurt this
-// deployment — every quote writes an offers row AND an audit row, and the audit chain takes one
-// global advisory lock, so a fast enough loop serialises the whole thing for everyone.
+// maxOrdersPerHour is rule 12, after signature verification and a dozen reads, and it only counts
+// rows that became orders. So it does nothing about quote flooding, the cheap way to hurt this
+// deployment: every quote writes an offers row and an audit row, and the audit chain takes one
+// global advisory lock.
 //
-// ponytail: in-memory, per instance. On Vercel that means N warm instances get N buckets, so this
-// raises the cost of an attack rather than capping it. A shared counter needs Redis or a table, and
-// a table would put a write on the path this exists to protect. Swap it if there is ever a tenant
-// worth the round trip.
+// ponytail: in-memory, per instance — N warm instances get N buckets, so this raises the cost of an
+// attack rather than capping it. A shared counter needs Redis; a table would put a write on the very
+// path this protects.
 interface Window {
   hits: number;
   resetAt: number;
@@ -26,17 +24,13 @@ export interface Limit {
   retryAfter: number;
 }
 
-/**
- * One fixed window per key. Fixed rather than sliding on purpose: a sliding window needs the
- * timestamps kept, and the whole point of this file is that it costs nothing to consult.
- */
+/** One fixed window per key. Sliding would need the timestamps kept; this must cost nothing. */
 export function take(key: string, limit: number, windowMs: number, now = Date.now()): Limit {
   const found = windows.get(key);
 
   if (!found || now >= found.resetAt) {
-    // Cheapest possible eviction: when the map is full, drop everything already expired, and if
-    // that frees nothing, drop the map. Losing counters fails open, which for a speed bump is the
-    // right direction — the alternative is refusing legitimate callers to protect a Map.
+    // Cheapest eviction: drop what expired, and if that frees nothing, drop the map. Failing open is
+    // right for a speed bump — the alternative is refusing real callers to protect a Map.
     if (windows.size >= MAX_KEYS) {
       for (const [k, w] of windows) if (now >= w.resetAt) windows.delete(k);
       if (windows.size >= MAX_KEYS) windows.clear();
