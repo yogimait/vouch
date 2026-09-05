@@ -26,7 +26,7 @@ literally, and each half of it is a link in the table below.
 
 Every figure here is produced by a command in this repo, and each links to the page that shows it.
 Gate numbers and settlement numbers are listed apart, because they answer different questions and
-adding them would turn *"we decided 234 times"* into a claim about money that never moved.
+adding them would turn *"we decided 240 times"* into a claim about money that never moved.
 
 **The gate** — `npm run harness`, driving `evaluate()` directly:
 
@@ -41,11 +41,11 @@ adding them would turn *"we decided 234 times"* into a claim about money that ne
 
 | | |
 |---|---|
-| Orders settled, with a real `pay_...` id each | **13** |
-| Signed receipts, one per settled order | **13** |
-| Settled value | **Rs 27,689** |
-| Of which a human authorised after the agent was refused | **3, totalling Rs 19,394** |
-| Hash-chained audit rows, verified end to end | **369, chain intact** |
+| Orders settled, with a real `pay_...` id each | **14** |
+| Signed receipts, one per settled order | **14** |
+| Settled value | **Rs 32,232** |
+| Of which a person authorised after the agent was escalated | **4, totalling Rs 23,937** |
+| Hash-chained audit rows, verified end to end | **399, chain intact** |
 
 **The build:** 151 tests across 21 files, run against a real Postgres — no mocked database, no
 mocked gateway. Four ESLint boundaries that fail the build rather than the review.
